@@ -7,10 +7,10 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 export let uVB = { value: 0 };
 
 const AGENTS = [
-  { name:'CIPHER', color:0x7c6bff, hex:'#7c6bff', r:2.2, speed:0.38, incline: 0.22, phase:0.00 },
-  { name:'FORGE',  color:0xf59e0b, hex:'#f59e0b', r:2.8, speed:0.27, incline:-0.18, phase:1.57 },
-  { name:'NOVA',   color:0xfb7185, hex:'#fb7185', r:3.1, speed:0.21, incline: 0.28, phase:3.14 },
-  { name:'TITAN',  color:0x60a5fa, hex:'#60a5fa', r:2.5, speed:0.32, incline:-0.24, phase:4.71 },
+  { name:'CIPHER', color:0x7c6bff, hex:'#7c6bff', r:2.2, speed:0.38, incline: 0.22, phase:0.00, geom:'octa',  face:'twin'    },
+  { name:'FORGE',  color:0xf59e0b, hex:'#f59e0b', r:2.8, speed:0.27, incline:-0.18, phase:1.57, geom:'tetra', face:'cyclops' },
+  { name:'NOVA',   color:0xfb7185, hex:'#fb7185', r:3.1, speed:0.21, incline: 0.28, phase:3.14, geom:'icosa', face:'tri'     },
+  { name:'TITAN',  color:0x60a5fa, hex:'#60a5fa', r:2.5, speed:0.32, incline:-0.24, phase:4.71, geom:'dodec', face:'visor'   },
 ];
 
 export function initScene() {
@@ -170,34 +170,92 @@ export function initScene() {
   gs.scale.setScalar(2.1); jg.add(gs);
   scene.add(jg);
 
+  // ── Agent face builder ───────────────────────────────────────────────────
+  function pickHeadGeom(g) {
+    if (g === 'octa')  return new THREE.OctahedronGeometry(0.20, 0);
+    if (g === 'tetra') return new THREE.TetrahedronGeometry(0.22, 0);
+    if (g === 'icosa') return new THREE.IcosahedronGeometry(0.20, 0);
+    return new THREE.DodecahedronGeometry(0.19, 0);
+  }
+  function buildFace(style, color) {
+    const grp = new THREE.Group();
+    const wMat = new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1.0,blending:THREE.AdditiveBlending,depthWrite:false});
+    const gMat = new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.75,blending:THREE.AdditiveBlending,depthWrite:false});
+    const eyes = [];
+    if (style === 'twin') {
+      [-0.055, 0.055].forEach(ex => {
+        const eye  = new THREE.Mesh(new THREE.SphereGeometry(0.022,12,12), wMat.clone()); eye.position.set(ex, 0.018, 0.16); grp.add(eye);
+        const glow = new THREE.Mesh(new THREE.SphereGeometry(0.05,12,12),  gMat.clone()); glow.position.set(ex, 0.018, 0.155); grp.add(glow);
+        eyes.push({ eye, glow });
+      });
+    } else if (style === 'cyclops') {
+      const eye  = new THREE.Mesh(new THREE.SphereGeometry(0.034,16,16), wMat.clone()); eye.position.set(0, 0.015, 0.17); grp.add(eye);
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(0.085,16,16), gMat.clone()); glow.position.set(0, 0.015, 0.16); grp.add(glow);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.005, 6, 32), gMat.clone()); ring.position.set(0, 0.015, 0.165); grp.add(ring);
+      eyes.push({ eye, glow });
+    } else if (style === 'tri') {
+      [[0, 0.07, 0.16], [-0.06, -0.03, 0.16], [0.06, -0.03, 0.16]].forEach(([x,y,z]) => {
+        const eye  = new THREE.Mesh(new THREE.SphereGeometry(0.022,12,12), wMat.clone()); eye.position.set(x,y,z); grp.add(eye);
+        const glow = new THREE.Mesh(new THREE.SphereGeometry(0.05,12,12),  gMat.clone()); glow.position.set(x,y,z-0.005); grp.add(glow);
+        eyes.push({ eye, glow });
+      });
+    } else { // visor
+      const visor     = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.025, 0.005), wMat.clone()); visor.position.set(0, 0.015, 0.17); grp.add(visor);
+      const visorGlow = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.06,  0.005), gMat.clone()); visorGlow.position.set(0, 0.015, 0.16); grp.add(visorGlow);
+      eyes.push({ eye: visor, glow: visorGlow });
+    }
+    return { grp, eyes };
+  }
+
   // ── Agent orbit groups ───────────────────────────────────────────────────
-  const agentGroups = AGENTS.map(def => {
+  const agentEntries = AGENTS.map(def => {
     const grp = new THREE.Group();
     const col = new THREE.Color(def.color);
 
-    grp.add(new THREE.Mesh(new THREE.SphereGeometry(0.13,32,32), new THREE.ShaderMaterial({
+    // Inner glow core (small, behind head)
+    grp.add(new THREE.Mesh(new THREE.SphereGeometry(0.10,32,32), new THREE.ShaderMaterial({
       uniforms:{uTime:uT,uColor:{value:col},uPhase:{value:def.phase}},
       vertexShader:bv,
       fragmentShader:`uniform float uTime;uniform vec3 uColor;uniform float uPhase;varying vec3 vN;
-        void main(){float p=sin(uTime*2.2+uPhase)*.5+.5;float b=.65+p*.35;float f=pow(1.-abs(dot(vN,vec3(0,0,1))),1.2);gl_FragColor=vec4(uColor*b,f*b);}`,
+        void main(){float p=sin(uTime*2.2+uPhase)*.5+.5;float b=.7+p*.3;float f=pow(1.-abs(dot(vN,vec3(0,0,1))),1.0);gl_FragColor=vec4(uColor*b,f*b);}`,
       transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,
     })));
 
-    grp.add(new THREE.Mesh(new THREE.SphereGeometry(0.25,32,32), new THREE.ShaderMaterial({
+    // Outer halo
+    grp.add(new THREE.Mesh(new THREE.SphereGeometry(0.32,32,32), new THREE.ShaderMaterial({
       uniforms:{uTime:uT,uColor:{value:col},uPhase:{value:def.phase}},
       vertexShader:bv,
       fragmentShader:`uniform float uTime;uniform vec3 uColor;uniform float uPhase;varying vec3 vN;
-        void main(){float p=sin(uTime*2.2+uPhase)*.5+.5;float b=.12+p*.08;float f=pow(1.-abs(dot(vN,vec3(0,0,1))),3.);gl_FragColor=vec4(uColor,f*b);}`,
+        void main(){float p=sin(uTime*2.2+uPhase)*.5+.5;float b=.10+p*.08;float f=pow(1.-abs(dot(vN,vec3(0,0,1))),3.);gl_FragColor=vec4(uColor,f*b);}`,
       transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.BackSide,
     })));
 
-    const mr = new THREE.Mesh(new THREE.TorusGeometry(0.25,0.006,6,64),
-      new THREE.MeshBasicMaterial({color:def.color,transparent:true,opacity:0.65,blending:THREE.AdditiveBlending,depthWrite:false}));
+    // Wireframe head (unique geometry per agent)
+    const head = new THREE.Mesh(pickHeadGeom(def.geom),
+      new THREE.MeshBasicMaterial({color:def.color,wireframe:true,transparent:true,opacity:0.55,depthWrite:false}));
+    grp.add(head);
+
+    // Camera-facing face plate (eyes/visor)
+    const { grp: faceGrp, eyes: faceEyes } = buildFace(def.face, def.color);
+    grp.add(faceGrp);
+
+    // Mini orbital ring + 4 tick marks
+    const mr = new THREE.Mesh(new THREE.TorusGeometry(0.30,0.006,6,64),
+      new THREE.MeshBasicMaterial({color:def.color,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false}));
     mr.rotation.x = Math.PI/2;
     grp.add(mr);
+    for (let i=0; i<4; i++) {
+      const a=(i/4)*Math.PI*2;
+      const tk = new THREE.Mesh(new THREE.BoxGeometry(0.005,0.022,0.005),
+        new THREE.MeshBasicMaterial({color:def.color,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false}));
+      tk.position.set(Math.cos(a)*0.30, 0, Math.sin(a)*0.30);
+      tk.rotation.y = -a;
+      mr.add(tk);
+    }
 
+    // Name label
     const lbl = new THREE.Sprite(new THREE.SpriteMaterial({map:agentLabel(def.name,def.hex),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
-    lbl.scale.set(0.72,0.18,1); lbl.position.y = 0.40;
+    lbl.scale.set(0.72,0.18,1); lbl.position.y = 0.46;
     grp.add(lbl);
 
     // Faint orbit path line
@@ -212,7 +270,7 @@ export function initScene() {
 
     grp.userData = def;
     scene.add(grp);
-    return grp;
+    return { grp, faceGrp, head, mr, faceEyes, def };
   });
 
   // ── Bloom ────────────────────────────────────────────────────────────────
@@ -243,14 +301,26 @@ export function initScene() {
 
     jg.rotation.y = Math.sin(elapsed*.18)*.06;
 
-    agentGroups.forEach(g => {
-      const d=g.userData, a=elapsed*d.speed+d.phase;
-      g.position.set(
-        Math.cos(a)*d.r,
-        Math.sin(a)*Math.sin(d.incline)*d.r,
-        Math.sin(a)*Math.cos(d.incline)*d.r
+    agentEntries.forEach(({grp, faceGrp, head, mr, faceEyes, def}) => {
+      const a = elapsed*def.speed + def.phase;
+      grp.position.set(
+        Math.cos(a)*def.r,
+        Math.sin(a)*Math.sin(def.incline)*def.r,
+        Math.sin(a)*Math.cos(def.incline)*def.r
       );
-      g.children[2].rotation.y += dt*2.2;
+      // Face plate always looks at camera
+      faceGrp.lookAt(camera.position);
+      // Head wireframe spins slowly on its own
+      head.rotation.y = elapsed*0.4 + def.phase;
+      head.rotation.x = elapsed*0.18;
+      // Mini ring orbit
+      mr.rotation.y += dt*2.2;
+      // Eye pulse (offset by phase per agent)
+      const aep = Math.sin(elapsed*2.6 + def.phase)*0.5+0.5;
+      faceEyes.forEach(({eye,glow}) => {
+        eye.material.opacity  = 0.7 + aep*0.3;
+        glow.material.opacity = 0.55 + aep*0.4;
+      });
     });
 
     nebulas.forEach(s => {
