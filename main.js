@@ -7,6 +7,7 @@ import {
 import {
   initMic, initMicButton, initTelegram, initSettings,
   initMembersModal, initPanelToggle, setAmplitudeCallback,
+  initPassiveListening,
 } from './voice.js';
 
 // Load config first so CFG is populated before anything tries to use it
@@ -27,6 +28,7 @@ renderMembers(null);
 // Wire all UI
 initMic();
 initMicButton();
+initPassiveListening();
 initTelegram();
 initSettings();
 initMembersModal();

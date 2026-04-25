@@ -8,6 +8,40 @@ let analyser = null;
 let _onAmplitude = null;
 export function setAmplitudeCallback(cb) { _onAmplitude = cb; }
 
+// ── Passive wake-word detection ───────────────────────────────────────────────
+let passiveActive = false;
+let passiveInstance = null;
+
+function startPassive() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR || passiveActive || micActive) return;
+  try {
+    passiveInstance = new SR();
+    passiveInstance.continuous = true;
+    passiveInstance.interimResults = true;
+    passiveInstance.lang = 'en-US';
+    passiveInstance.onresult = e => {
+      const txt = Array.from(e.results).slice(-3).map(r => r[0].transcript).join(' ').toLowerCase();
+      if ((txt.includes('hey jarvis') || txt.includes('jarvis')) && !micActive) {
+        stopPassive();
+        setTimeout(startMic, 300);
+      }
+    };
+    passiveInstance.onend   = () => { passiveActive = false; if (!micActive) setTimeout(startPassive, 1500); };
+    passiveInstance.onerror = () => { passiveActive = false; if (!micActive) setTimeout(startPassive, 3000); };
+    passiveInstance.start();
+    passiveActive = true;
+  } catch { passiveActive = false; }
+}
+
+function stopPassive() {
+  passiveActive = false;
+  try { passiveInstance?.abort(); } catch {}
+  passiveInstance = null;
+}
+
+export function initPassiveListening() { startPassive(); }
+
 // ── Status dot ────────────────────────────────────────────────────────────────
 function setStatus(state) {
   const dot = document.getElementById('status-dot');
@@ -90,6 +124,7 @@ export function stopMic() {
   setStatus('');
   stopAmpLoop();
   try { recognition && recognition.abort(); } catch {}
+  setTimeout(startPassive, 1200);
 }
 
 // ── Send to Jarvis ────────────────────────────────────────────────────────────
@@ -171,8 +206,7 @@ async function callAI(text) {
 }
 
 // ── TTS ───────────────────────────────────────────────────────────────────────
-export function speak(text) {
-  if (!window.speechSynthesis) return;
+function doSpeak(text) {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.rate = 1.05; u.pitch = 0.95; u.volume = 1;
@@ -182,6 +216,15 @@ export function speak(text) {
   u.onend = () => setStatus('');
   u.onerror = () => setStatus('');
   speechSynthesis.speak(u);
+}
+
+export function speak(text) {
+  if (!window.speechSynthesis) { setStatus(''); return; }
+  if (speechSynthesis.getVoices().length) {
+    doSpeak(text);
+  } else {
+    speechSynthesis.addEventListener('voiceschanged', () => doSpeak(text), { once: true });
+  }
 }
 
 // ── Response card ─────────────────────────────────────────────────────────────
