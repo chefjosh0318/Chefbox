@@ -2,7 +2,7 @@
 export const CFG = {
   ocUrl:     'https://be408b7e-0fdc-4e2c-a227-52d97cd3c704.cfargotunnel.com',
   aiKey:     '',   // override via Settings — falls back to built-in key
-  aiModel:   'gpt-4o',
+  aiModel:   'claude-haiku-4-5',
   sysPrompt: `You are Jarvis, the AI CEO of Summit Brands Inc.
 You manage three premium brands: ChefBox Reserve (private chef subscription, Nashville), Aura (private dining events, Nashville), and Sprig & Fork (corporate catering, Nashville).
 
