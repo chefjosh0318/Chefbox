@@ -3,7 +3,7 @@ import {
   fetchBookings, AGENTS, DAILY, WEEKLY, ACOLORS
 } from './data.js';
 import { initScene } from './scene.js';
-import { initMic, initMicButton, initPassiveListening, initSettings, startMic, stopMic, sendToJarvis } from './voice.js';
+import { initMic, initMicButton, initPassiveListening, initSettings, initVoiceTest, startMic, stopMic, sendToJarvis } from './voice.js';
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 loadCFG();
@@ -12,6 +12,7 @@ initMic();
 initMicButton();
 initPassiveListening();
 initSettings();
+initVoiceTest();
 
 // ── Space PTT ─────────────────────────────────────────────────────────────
 let held = false;
