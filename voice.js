@@ -2,339 +2,245 @@ import { CFG, saveCFG, addActivityLog } from './data.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let micActive = false;
-let recognition = null;
-let ampAF = null;
-let analyser = null;
-let _onAmplitude = null;
-export function setAmplitudeCallback(cb) { _onAmplitude = cb; }
+let recog     = null;
+let _onAmp    = null;
+export function setAmplitudeCallback(cb) { _onAmp = cb; }
 
-// ── Passive wake-word detection ───────────────────────────────────────────────
-let passiveActive = false;
-let passiveInstance = null;
+// ── Status ────────────────────────────────────────────────────────────────────
+export function setStatus(state, label) {
+  const dot = document.getElementById('sdot');
+  const lbl = document.getElementById('slabel');
+  if (dot) dot.className = state || '';
+  if (lbl && label) lbl.textContent = label;
+}
 
-function startPassive() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR || passiveActive || micActive) return;
+// ── Response card ─────────────────────────────────────────────────────────────
+let _card = null;
+export function showCard(text) {
+  if (_card) _card.remove();
+  _card = document.createElement('div');
+  _card.className = 'resp';
+  _card.innerHTML = `
+    <button class="resp-x">✕</button>
+    <div class="resp-lbl">Jarvis</div>
+    <div class="resp-txt">${text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+  `;
+  _card.querySelector('.resp-x').onclick = () => { _card.remove(); _card = null; };
+  document.body.appendChild(_card);
+  setTimeout(() => { if (_card) { _card.remove(); _card = null; } }, 30000);
+}
+
+// ── TTS ───────────────────────────────────────────────────────────────────────
+export function speak(text) {
   try {
-    passiveInstance = new SR();
-    passiveInstance.continuous = true;
-    passiveInstance.interimResults = true;
-    passiveInstance.lang = 'en-US';
-    passiveInstance.onresult = e => {
-      const txt = Array.from(e.results).slice(-3).map(r => r[0].transcript).join(' ').toLowerCase();
-      if ((txt.includes('hey jarvis') || txt.includes('jarvis')) && !micActive) {
-        stopPassive();
-        setTimeout(startMic, 300);
-      }
-    };
-    passiveInstance.onend   = () => { passiveActive = false; if (!micActive) setTimeout(startPassive, 1500); };
-    passiveInstance.onerror = () => { passiveActive = false; if (!micActive) setTimeout(startPassive, 3000); };
-    passiveInstance.start();
-    passiveActive = true;
-  } catch { passiveActive = false; }
-}
-
-function stopPassive() {
-  passiveActive = false;
-  try { passiveInstance?.abort(); } catch {}
-  passiveInstance = null;
-}
-
-export function initPassiveListening() { startPassive(); }
-
-// ── Status dot ────────────────────────────────────────────────────────────────
-function setStatus(state) {
-  const dot = document.getElementById('status-dot');
-  if (dot) dot.className = state ? state : '';
-}
-
-// ── Mic init ──────────────────────────────────────────────────────────────────
-export function initMic() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    document.getElementById('mic-hint').textContent = 'SPEECH NOT SUPPORTED IN THIS BROWSER';
-    return;
-  }
-  recognition = new SR();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.lang = 'en-US';
-
-  recognition.onresult = e => {
-    const text = e.results[0][0].transcript.trim();
-    document.getElementById('mic-hint').textContent = `"${text}"`;
-    stopMic();
-    sendToJarvis(text);
-  };
-  recognition.onerror = err => {
-    if (err.error !== 'aborted') {
-      document.getElementById('mic-hint').textContent = 'MIC ERROR — TRY AGAIN';
-    }
-    stopMic();
-  };
-  recognition.onend = () => {
-    if (micActive) stopMic();
-  };
-}
-
-// ── Amplitude loop ────────────────────────────────────────────────────────────
-async function startAmpLoop() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = ctx.createMediaStreamSource(stream);
-    analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    src.connect(analyser);
-    const buf = new Uint8Array(analyser.frequencyBinCount);
-    function loop() {
-      ampAF = requestAnimationFrame(loop);
-      analyser.getByteFrequencyData(buf);
-      const avg = buf.reduce((s, v) => s + v, 0) / buf.length;
-      const norm = Math.min(1, avg / 60);
-      if (_onAmplitude) _onAmplitude(norm);
-    }
-    loop();
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.slice(0, 400));
+    u.rate  = 1.05;
+    u.pitch = 1.0;
+    // pick a deeper voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const pref = voices.find(v => /google us english|alex|daniel|en-us/i.test(v.name + v.lang));
+    if (pref) u.voice = pref;
+    u.onend = () => setStatus('online', 'Ready');
+    window.speechSynthesis.speak(u);
   } catch {}
 }
 
-function stopAmpLoop() {
-  if (ampAF) { cancelAnimationFrame(ampAF); ampAF = null; }
-  if (_onAmplitude) _onAmplitude(0);
+// ── Core send ────────────────────────────────────────────────────────────────
+export async function sendToJarvis(text) {
+  setStatus('processing', 'Thinking…');
+  addActivityLog(`You: "${text.slice(0,60)}${text.length>60?'…':''}"`);
+
+  let reply = null;
+
+  // 1. OpenClaw tunnel — POST to /api/chat (standard OpenClaw REST endpoint)
+  const base = (CFG.ocUrl || '').replace(/\/$/, '');
+  if (base) {
+    // Try the OpenClaw gateway chat sessions endpoint
+    const endpoints = [
+      { url: `${base}/api/chat`, body: { message: text, session: 'mc-voice' } },
+      { url: `${base}/api/message`, body: { text, channel: 'voice' } },
+      { url: `${base}/v1/chat/completions`, body: {
+          model: 'claude-sonnet',
+          messages: [{ role:'user', content: text }]
+        }
+      },
+    ];
+
+    for (const ep of endpoints) {
+      if (reply) break;
+      try {
+        const r = await fetch(ep.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(ep.body),
+          signal: AbortSignal.timeout(18000),
+        });
+        if (r.ok) {
+          const d = await r.json();
+          reply = d.response || d.text || d.message || d.content
+                 || d.choices?.[0]?.message?.content
+                 || null;
+        }
+      } catch {}
+    }
+  }
+
+  // 2. Fallback: direct AI API (user provides key in settings)
+  if (!reply && CFG.aiKey && CFG.aiUrl) {
+    try {
+      const r = await fetch(CFG.aiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${CFG.aiKey}` },
+        body: JSON.stringify({
+          model: CFG.aiModel || 'gpt-4o',
+          messages: [
+            { role: 'system', content: CFG.sysPrompt },
+            { role: 'user',   content: text },
+          ],
+          max_tokens: 350,
+        }),
+        signal: AbortSignal.timeout(22000),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        reply = d.choices?.[0]?.message?.content?.trim() || null;
+      }
+    } catch {}
+  }
+
+  if (!reply) {
+    reply = `I heard you, but couldn't reach my backend. Check Settings — add an OpenAI key as a fallback, or make sure the tunnel URL is correct: ${base || 'not set'}`;
+  }
+
+  setStatus('speaking', 'Speaking…');
+  addActivityLog(`Jarvis: "${reply.slice(0,80)}${reply.length>80?'…':''}"`);
+  showCard(reply);
+  speak(reply);
+  setTimeout(() => setStatus('online', 'Ready'), 4000);
+}
+
+// ── Speech recognition init ────────────────────────────────────────────────────
+export function initMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    const h = document.getElementById('vc-hint');
+    if (h) h.textContent = 'Speech API not supported — use chat input above';
+    return;
+  }
+  recog = new SR();
+  recog.continuous      = false;
+  recog.interimResults  = false;
+  recog.lang            = 'en-US';
+
+  recog.onresult = e => {
+    const txt = e.results[0][0].transcript.trim();
+    const h = document.getElementById('vc-hint');
+    if (h) h.textContent = `"${txt}"`;
+    stopMic();
+    sendToJarvis(txt);
+  };
+  recog.onerror = err => {
+    if (err.error !== 'aborted') {
+      const h = document.getElementById('vc-hint');
+      if (h) h.textContent = 'Mic error — try again';
+    }
+    stopMic();
+  };
+  recog.onend = () => { if (micActive) stopMic(); };
 }
 
 // ── Start / stop mic ──────────────────────────────────────────────────────────
 export function startMic() {
-  if (!recognition) return;
+  if (micActive || !recog) return;
   micActive = true;
-  document.getElementById('mic-btn').classList.add('active');
-  document.getElementById('mic-icon').style.display = 'none';
-  document.getElementById('stop-icon').style.display = '';
-  document.getElementById('mic-hint').textContent = 'LISTENING…';
-  setStatus('listening');
-  recognition.start();
-  startAmpLoop();
+  const btn = document.getElementById('mic');
+  const h   = document.getElementById('vc-hint');
+  if (btn) btn.classList.add('active');
+  if (h)   h.textContent = 'Listening…';
+  setStatus('listening', 'Listening…');
+  try { recog.start(); } catch {}
 }
 
 export function stopMic() {
   micActive = false;
-  document.getElementById('mic-btn').classList.remove('active');
-  document.getElementById('mic-icon').style.display = '';
-  document.getElementById('stop-icon').style.display = 'none';
-  setStatus('');
-  stopAmpLoop();
-  try { recognition && recognition.abort(); } catch {}
-  setTimeout(startPassive, 1200);
+  const btn = document.getElementById('mic');
+  const h   = document.getElementById('vc-hint');
+  if (btn) { btn.classList.remove('active'); btn.style.boxShadow = ''; }
+  if (h)   h.textContent = 'Say "Hey Jarvis" or press Space';
+  setStatus('online', 'Ready');
+  try { recog.stop(); } catch {}
 }
 
-// ── Send to Jarvis ────────────────────────────────────────────────────────────
-export async function sendToJarvis(text) {
-  setStatus('processing');
-  addActivityLog(`You: "${text.slice(0, 60)}${text.length > 60 ? '…' : ''}"`);
-
-  let reply = null;
-  const ocBase = CFG.ocUrl.replace(/\/$/, '');
-  const mcBase = CFG.mcApiUrl.replace(/\/$/, '');
-
-  // 1. Try OpenClaw gateway
-  if (ocBase) {
-    try {
-      const r = await fetch(`${ocBase}/v1/voice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, agent: CFG.agentName }),
-        signal: AbortSignal.timeout(15000),
-      });
-      if (r.ok) {
-        const d = await r.json();
-        reply = d.response || d.text || d.message || null;
-      }
-    } catch {}
-  }
-
-  // 2. Try Mission Control voice relay
-  if (!reply && mcBase) {
-    try {
-      const r = await fetch(`${mcBase}/api/jarvis/voice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
-        signal: AbortSignal.timeout(15000),
-      });
-      if (r.ok) {
-        const d = await r.json();
-        reply = d.response || d.text || d.message || null;
-      }
-    } catch {}
-  }
-
-  // 3. Fallback to direct AI API
-  if (!reply && CFG.aiKey && CFG.aiUrl) {
-    reply = await callAI(text);
-  }
-
-  if (!reply) {
-    reply = 'I couldn\'t reach the AI backend. Check your API settings.';
-  }
-
-  setStatus('speaking');
-  addActivityLog(`Jarvis: "${reply.slice(0, 80)}${reply.length > 80 ? '…' : ''}"`);
-  showCard(reply);
-  speak(reply);
+// ── Mic button ────────────────────────────────────────────────────────────────
+export function initMicButton() {
+  const btn = document.getElementById('mic');
+  if (!btn) return;
+  btn.addEventListener('click', () => { micActive ? stopMic() : startMic(); });
 }
 
-// ── Fallback AI call ──────────────────────────────────────────────────────────
-async function callAI(text) {
+// ── Passive "Hey Jarvis" wake word ────────────────────────────────────────────
+let passiveOn = false;
+let passive   = null;
+
+function startPassive() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR || passiveOn || micActive) return;
   try {
-    const r = await fetch(CFG.aiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CFG.aiKey}` },
-      body: JSON.stringify({
-        model: CFG.aiModel,
-        messages: [
-          { role: 'system', content: CFG.sysPrompt },
-          { role: 'user',   content: text },
-        ],
-        max_tokens: 300,
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!r.ok) return null;
-    const d = await r.json();
-    return d.choices?.[0]?.message?.content?.trim() || null;
-  } catch { return null; }
+    passive = new SR();
+    passive.continuous     = true;
+    passive.interimResults = true;
+    passive.lang           = 'en-US';
+    passive.onresult = e => {
+      const txt = Array.from(e.results).slice(-2).map(r=>r[0].transcript).join(' ').toLowerCase();
+      if ((txt.includes('hey jarvis') || txt.includes('hey, jarvis')) && !micActive) {
+        stopPassive();
+        setTimeout(startMic, 300);
+      }
+    };
+    passive.onend   = () => { passiveOn = false; if (!micActive) setTimeout(startPassive, 2000); };
+    passive.onerror = () => { passiveOn = false; if (!micActive) setTimeout(startPassive, 4000); };
+    passive.start();
+    passiveOn = true;
+  } catch {}
 }
 
-// ── TTS ───────────────────────────────────────────────────────────────────────
-function doSpeak(text) {
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1.05; u.pitch = 0.95; u.volume = 1;
-  const voices = speechSynthesis.getVoices();
-  const pref = voices.find(v => /Google US English|Daniel|Samantha/i.test(v.name));
-  if (pref) u.voice = pref;
-  u.onend = () => setStatus('');
-  u.onerror = () => setStatus('');
-  speechSynthesis.speak(u);
+function stopPassive() {
+  passiveOn = false;
+  try { passive?.abort(); } catch {};
+  passive = null;
 }
 
-export function speak(text) {
-  if (!window.speechSynthesis) { setStatus(''); return; }
-  if (speechSynthesis.getVoices().length) {
-    doSpeak(text);
-  } else {
-    speechSynthesis.addEventListener('voiceschanged', () => doSpeak(text), { once: true });
-  }
-}
-
-// ── Response card ─────────────────────────────────────────────────────────────
-let _cardEl = null;
-export function showCard(text, label = 'Jarvis') {
-  if (_cardEl) _cardEl.remove();
-  _cardEl = document.createElement('div');
-  _cardEl.className = 'resp-card';
-  _cardEl.style.cssText = 'left:50%;bottom:144px;transform:translateX(-50%);width:340px;max-width:90vw;';
-  _cardEl.innerHTML = `<div class="card-lbl">${label}</div><div class="card-val"></div><button class="card-x">✕</button>`;
-  _cardEl.querySelector('.card-val').textContent = text;
-  _cardEl.querySelector('.card-x').onclick = () => _cardEl.remove();
-  document.body.appendChild(_cardEl);
-  setTimeout(() => { if (_cardEl) _cardEl.remove(); }, 18000);
-}
-
-// ── Telegram quick-send ───────────────────────────────────────────────────────
-export function initTelegram() {
-  const input = document.getElementById('tg-input');
-  const sendBtn = document.getElementById('tg-send');
-
-  async function doSend() {
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = '';
-    addActivityLog(`Telegram: "${text.slice(0,60)}"`);
-    const mcBase = CFG.mcApiUrl.replace(/\/$/, '');
-    if (!mcBase) { showCard('No Mission Control URL set. Configure in Settings.', 'System'); return; }
-    try {
-      const r = await fetch(`${mcBase}/api/summit/telegram/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
-        signal: AbortSignal.timeout(10000),
-      });
-      showCard(r.ok ? `✓ Sent to Telegram` : `✗ Send failed (${r.status})`, 'Telegram');
-    } catch {
-      // also try sending to Jarvis as a message if Telegram fails
-      sendToJarvis(text);
-    }
-  }
-
-  sendBtn.addEventListener('click', doSend);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') doSend(); });
-}
+export function initPassiveListening() { setTimeout(startPassive, 1500); }
 
 // ── Settings modal ────────────────────────────────────────────────────────────
 export function initSettings() {
-  const fields = { 's-mc': 'mcApiUrl', 's-oc': 'ocUrl', 's-name': 'agentName', 's-url': 'aiUrl', 's-key': 'aiKey', 's-model': 'aiModel', 's-prompt': 'sysPrompt' };
+  const modal  = document.getElementById('cfg-modal');
+  const openB  = document.getElementById('cfg-btn');
+  const closeB = document.getElementById('cfg-x');
+  const saveB  = document.getElementById('cfg-save');
+  if (!modal) return;
 
-  function openSettings() {
+  const fields = { 's-oc':'ocUrl', 's-url':'aiUrl', 's-key':'aiKey', 's-model':'aiModel', 's-prompt':'sysPrompt' };
+
+  openB?.addEventListener('click', () => {
     Object.entries(fields).forEach(([id, key]) => {
       const el = document.getElementById(id);
-      if (el) el.value = CFG[key] ?? '';
+      if (el) el.value = CFG[key] || '';
     });
-    document.getElementById('settings-modal').classList.add('open');
-  }
+    modal.classList.add('on');
+  });
+  closeB?.addEventListener('click', () => modal.classList.remove('on'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('on'); });
 
-  function saveSettings() {
+  saveB?.addEventListener('click', () => {
     const patch = {};
     Object.entries(fields).forEach(([id, key]) => {
       const el = document.getElementById(id);
       if (el) patch[key] = el.value.trim();
     });
     saveCFG(patch);
-    document.getElementById('settings-modal').classList.remove('open');
-    applyAgentName();
-  }
-
-  document.getElementById('settings-btn')?.addEventListener('click', openSettings);
-  document.getElementById('settings-close')?.addEventListener('click', () => document.getElementById('settings-modal').classList.remove('open'));
-  document.getElementById('settings-save')?.addEventListener('click', saveSettings);
-}
-
-function applyAgentName() {
-  const el = document.querySelector('[data-agent-name]');
-  if (el && CFG.agentName) el.textContent = CFG.agentName;
-}
-
-// ── Members modal ─────────────────────────────────────────────────────────────
-export function initMembersModal() {
-  document.getElementById('members-btn')?.addEventListener('click', () => {
-    document.getElementById('members-modal').classList.add('open');
-  });
-  document.getElementById('members-close')?.addEventListener('click', () => {
-    document.getElementById('members-modal').classList.remove('open');
-  });
-  document.getElementById('members-modal')?.addEventListener('click', e => {
-    if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
-  });
-}
-
-// ── Activity panel toggle ─────────────────────────────────────────────────────
-export function initPanelToggle() {
-  const panel  = document.getElementById('activity-panel');
-  const toggle = document.getElementById('panel-toggle');
-  const icon   = toggle?.querySelector('svg path');
-  let collapsed = false;
-  toggle?.addEventListener('click', () => {
-    collapsed = !collapsed;
-    panel.classList.toggle('collapsed', collapsed);
-    if (icon) icon.setAttribute('d', collapsed ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6');
-  });
-}
-
-// ── Mic button ────────────────────────────────────────────────────────────────
-export function initMicButton() {
-  const btn = document.getElementById('mic-btn');
-  btn?.addEventListener('click', () => {
-    if (micActive) stopMic();
-    else startMic();
+    modal.classList.remove('on');
+    addActivityLog('Settings saved');
   });
 }
