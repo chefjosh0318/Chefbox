@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChefBox</title>
+  <title>Jarvis — Summit Labs</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -345,8 +345,9 @@
 <!-- HEADER -->
 <header id="header">
   <div class="wordmark">
-    <span data-agent-name>ChefBox</span>
+    <span data-agent-name>Jarvis</span>
     <div class="wordmark-dot"></div>
+    <span style="font-size:10px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-left:2px">Summit Labs</span>
   </div>
   <div class="header-right">
     <button class="ghost-btn" title="Neural Map">
@@ -387,61 +388,95 @@
     </svg>
   </button>
   <div class="panel-content">
-    <div class="section-header">Inbox Replies <span class="section-count">3</span></div>
+
+    <!-- ChefBox brand agents -->
+    <div class="section-header">
+      <span style="display:flex;align-items:center;gap:5px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#2DD4A8;display:inline-block"></span>
+        ChefBox
+      </span>
+      <span class="section-count">3</span>
+    </div>
     <div class="entry" style="animation-delay:.04s">
-      <div class="entry-title">Table 4 — Allergy check</div>
-      <div class="entry-sub">2 min ago</div>
+      <div class="entry-title">Scout — Menu pricing audit</div>
+      <div class="entry-sub">Running · 4 min</div>
     </div>
     <div class="entry" style="animation-delay:.08s">
-      <div class="entry-title">Reservation update</div>
-      <div class="entry-sub">11 min ago</div>
+      <div class="entry-title">Relay — Supplier reorder draft</div>
+      <div class="entry-sub">Awaiting approval</div>
     </div>
     <div class="entry" style="animation-delay:.12s">
-      <div class="entry-title">Supplier delivery ETA</div>
-      <div class="entry-sub">34 min ago</div>
+      <div class="entry-title">Flux — Table 4 allergy flag</div>
+      <div class="entry-sub">Resolved · 9 min ago</div>
     </div>
 
-    <div class="section-header">Recipe Tasks <span class="section-count">2</span></div>
+    <!-- Aura brand agents -->
+    <div class="section-header" style="margin-top:16px">
+      <span style="display:flex;align-items:center;gap:5px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#a78bfa;display:inline-block"></span>
+        Aura
+      </span>
+      <span class="section-count">2</span>
+    </div>
     <div class="entry" style="animation-delay:.16s">
-      <div class="entry-title">Scale lobster bisque ×6</div>
-      <div class="entry-sub">Due tonight</div>
+      <div class="entry-title">Scout — Content calendar Q2</div>
+      <div class="entry-sub">Running · 12 min</div>
     </div>
     <div class="entry" style="animation-delay:.20s">
-      <div class="entry-title">Substitute: heavy cream</div>
-      <div class="entry-sub">Pending review</div>
+      <div class="entry-title">Relay — IG campaign brief</div>
+      <div class="entry-sub">Draft ready · review</div>
     </div>
 
-    <div class="section-header">Prep Tasks <span class="section-count">4</span></div>
+    <!-- Sprig & Fork brand agents -->
+    <div class="section-header" style="margin-top:16px">
+      <span style="display:flex;align-items:center;gap:5px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#fb923c;display:inline-block"></span>
+        Sprig &amp; Fork
+      </span>
+      <span class="section-count">2</span>
+    </div>
     <div class="entry" style="animation-delay:.24s">
-      <div class="entry-title">Mise en place — Station 2</div>
-      <div class="entry-sub">Starts in 30 min</div>
+      <div class="entry-title">Flux — Weekend booking surge</div>
+      <div class="entry-sub">Alert · action needed</div>
     </div>
     <div class="entry" style="animation-delay:.28s">
-      <div class="entry-title">Deglaze the fond</div>
-      <div class="entry-sub">Waiting on protein</div>
+      <div class="entry-title">Scout — Competitor analysis</div>
+      <div class="entry-sub">Queued · starts soon</div>
     </div>
 
-    <div class="section-header">Menu Drafts <span class="section-count">1</span></div>
-    <div class="entry" style="animation-delay:.32s">
-      <div class="entry-title">Spring tasting menu v3</div>
-      <div class="entry-sub">Draft — needs pairing</div>
+    <!-- Cross-brand -->
+    <div class="section-header" style="margin-top:16px">
+      <span style="display:flex;align-items:center;gap:5px">
+        <span style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.3);display:inline-block"></span>
+        Summit Labs
+      </span>
+      <span class="section-count">1</span>
     </div>
+    <div class="entry" style="animation-delay:.32s">
+      <div class="entry-title">Jarvis — Weekly ops summary</div>
+      <div class="entry-sub">Generating · all brands</div>
+    </div>
+
   </div>
 </div>
 
 <!-- RESPONSE CARDS -->
 <div class="response-card revenue" style="bottom:134px; left:24px; animation-delay:0s">
   <button class="card-close" onclick="this.closest('.response-card').remove()">✕</button>
-  <div class="card-label">Covers Tonight</div>
-  <div class="card-value">142</div>
-  <div class="card-sub">↑ 18% vs last Friday</div>
+  <div class="card-label">Summit Revenue · Today</div>
+  <div class="card-value">$18,240</div>
+  <div class="card-sub">ChefBox $9.1k · Aura $5.4k · S&amp;F $3.7k</div>
 </div>
 
 <div class="response-card" style="bottom:290px; left:24px; animation-delay:.15s">
   <button class="card-close" onclick="this.closest('.response-card').remove()">✕</button>
-  <div class="card-label">Active Task</div>
-  <div class="card-value" style="font-size:15px;line-height:1.4">Scaling bisque recipe</div>
-  <div class="card-sub">For service at 7 PM</div>
+  <div class="card-label">Active Agents</div>
+  <div class="card-value" style="font-size:15px;line-height:1.5">
+    <span style="color:#2DD4A8">●</span> Scout &nbsp;
+    <span style="color:#a78bfa">●</span> Relay &nbsp;
+    <span style="color:#fb923c">●</span> Flux
+  </div>
+  <div class="card-sub">8 tasks running across 3 brands</div>
 </div>
 
 <!-- SETTINGS MODAL -->
@@ -452,7 +487,7 @@
       <button id="settings-close" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:18px;">✕</button>
     </div>
     <label style="display:block;margin-bottom:4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Agent Name</label>
-    <input id="s-name" type="text" placeholder="ChefBox" style="width:100%;margin-bottom:14px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;">
+    <input id="s-name" type="text" placeholder="Jarvis" style="width:100%;margin-bottom:14px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;">
     <label style="display:block;margin-bottom:4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:.08em">API Endpoint</label>
     <input id="s-url" type="text" placeholder="https://api.openai.com/v1/chat/completions" style="width:100%;margin-bottom:14px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;">
     <label style="display:block;margin-bottom:4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:.08em">API Key</label>
@@ -478,7 +513,7 @@
       <rect x="6" y="6" width="12" height="12" rx="2"/>
     </svg>
   </button>
-  <div id="mic-hint">TAP OR SAY 'HEY CHEFBOX'</div>
+  <div id="mic-hint">TAP OR SAY 'HEY JARVIS'</div>
 </div>
 
 <script type="module">
@@ -698,11 +733,12 @@ window.addEventListener('resize', () => {
 
 // ─── Config (fill in your keys or set via the settings panel) ────────────────
 const CFG = {
-  agentName:  localStorage.getItem('cfg_agentName')  || 'ChefBox',
+  agentName:  localStorage.getItem('cfg_agentName')  || 'Jarvis',
   apiKey:     localStorage.getItem('cfg_apiKey')     || '',
   apiUrl:     localStorage.getItem('cfg_apiUrl')     || 'https://api.openai.com/v1/chat/completions',
   model:      localStorage.getItem('cfg_model')      || 'gpt-4o',
-  systemPrompt: localStorage.getItem('cfg_systemPrompt') || 'You are a helpful kitchen AI assistant.',
+  systemPrompt: localStorage.getItem('cfg_systemPrompt') ||
+    'You are Jarvis, the master AI orchestrator for Summit Labs. You oversee three brands: ChefBox (food tech), Aura (wellness/beauty), and Sprig & Fork (restaurant). You coordinate Scout, Relay, and Flux agents to run and scale each business. Be concise, strategic, and proactive. Address the user as a founder/operator.',
 };
 
 function saveCFG() {
