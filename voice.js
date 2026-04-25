@@ -6,11 +6,11 @@ let recog     = null;
 export function setStatus(state, label) {
   const dot = document.getElementById('sdot');
   const lbl = document.getElementById('slbl');
-  if (dot) { dot.className = state || ''; }
+  if (dot) dot.className = state || '';
   if (lbl && label) lbl.textContent = label;
 }
 
-// ── Response card ──────────────────────────────────────────────────────────
+// ── Response card ─────────────────────────────────────────────────────────
 let _card = null;
 export function showCard(text) {
   if (_card) _card.remove();
@@ -23,17 +23,16 @@ export function showCard(text) {
   `;
   _card.querySelector('.rc-x').onclick = () => { _card?.remove(); _card = null; };
   document.body.appendChild(_card);
-  setTimeout(() => { _card?.remove(); _card = null; }, 28000);
+  setTimeout(() => { _card?.remove(); _card = null; }, 30000);
 }
 
-// ── TTS ────────────────────────────────────────────────────────────────────
+// ── TTS ───────────────────────────────────────────────────────────────────
 export function speak(text) {
   if (!text) return;
   try {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text.slice(0, 500));
-    u.rate  = 1.0;
-    u.pitch = 0.95;
+    u.rate = 1.0; u.pitch = 0.95;
     const voices = window.speechSynthesis.getVoices();
     const pick = voices.find(v => /Google US English|Aaron|Alex|Daniel|Samantha/i.test(v.name))
               || voices.find(v => /en-US/i.test(v.lang));
@@ -43,66 +42,70 @@ export function speak(text) {
   } catch {}
 }
 
-// ── Core AI call (OpenAI direct — fast, no tunnel needed) ──────────────────
+// ── Relay to Telegram so Jarvis (OpenClaw) sees it ─────────────────────────
+async function relayToTelegram(text) {
+  // Posts the voice query into Joshua's Telegram chat → Jarvis picks it up
+  // This ensures the conversation is also logged in OpenClaw
+  try {
+    const BOT   = import.meta.env.VITE_TG_BOT || '';
+    const CHAT  = import.meta.env.VITE_TG_CHAT || '';
+    if (!BOT || !CHAT) return;
+    await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: CHAT,
+        text: `🎙 *Voice from Mission Control:*\n"${text}"`,
+        parse_mode: 'Markdown',
+      }),
+      signal: AbortSignal.timeout(6000),
+    });
+  } catch {}
+}
+
+// ── Core: ask OpenAI, speak response, relay to Telegram ───────────────────
 export async function sendToJarvis(text) {
   if (!text.trim()) return;
   setStatus('proc', 'Thinking…');
   addActivityLog(`You: "${text.slice(0,65)}${text.length>65?'…':''}"`);
 
+  // Relay the query to Telegram so OpenClaw logs it
+  relayToTelegram(text);
+
+  const key = CFG.aiKey || import.meta.env.VITE_OAI || '';
+
   let reply = null;
-
-  // Primary: OpenAI API directly from browser (user key in settings)
-  if (CFG.aiKey) {
-    try {
-      const r = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${CFG.aiKey}`,
-        },
-        body: JSON.stringify({
-          model: CFG.aiModel || 'gpt-4o',
-          messages: [
-            { role: 'system', content: CFG.sysPrompt },
-            { role: 'user',   content: text },
-          ],
-          max_tokens: 400,
-          temperature: 0.7,
-        }),
-        signal: AbortSignal.timeout(20000),
-      });
-      if (r.ok) {
-        const d = await r.json();
-        reply = d.choices?.[0]?.message?.content?.trim() || null;
-      }
-    } catch (e) {
-      console.warn('OpenAI error:', e.message);
+  try {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: CFG.aiModel || 'gpt-4o',
+        messages: [
+          { role: 'system', content: CFG.sysPrompt },
+          { role: 'user',   content: text },
+        ],
+        max_tokens: 400,
+        temperature: 0.7,
+      }),
+      signal: AbortSignal.timeout(22000),
+    });
+    if (r.ok) {
+      const d = await r.json();
+      reply = d.choices?.[0]?.message?.content?.trim() || null;
+    } else {
+      const err = await r.json().catch(()=>({}));
+      console.warn('OpenAI error:', r.status, err.error?.message);
     }
-  }
-
-  // Fallback: try tunnel relay
-  if (!reply) {
-    const base = (CFG.ocUrl||'').replace(/\/$/, '');
-    if (base) {
-      try {
-        const r = await fetch(`${base}/api/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text }),
-          signal: AbortSignal.timeout(12000),
-        });
-        if (r.ok) {
-          const d = await r.json();
-          reply = d.response || d.text || d.message || null;
-        }
-      } catch {}
-    }
+  } catch (e) {
+    console.warn('OpenAI fetch error:', e.message);
   }
 
   if (!reply) {
-    reply = CFG.aiKey
-      ? 'OpenAI returned an error — check your API key in Settings.'
-      : 'Add your OpenAI API key in Settings (gear icon) to enable voice responses.';
+    reply = 'I had trouble reaching my AI backend. Try again in a moment.';
   }
 
   setStatus('talk', 'Speaking…');
@@ -112,18 +115,16 @@ export async function sendToJarvis(text) {
   setTimeout(() => setStatus('', 'Ready'), 5000);
 }
 
-// ── Speech recognition ─────────────────────────────────────────────────────
+// ── Speech recognition ────────────────────────────────────────────────────
 export function initMic() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) {
     const h = document.getElementById('vhint');
-    if (h) h.textContent = 'Use chat bar above — speech not supported here';
+    if (h) h.textContent = 'Use chat bar — speech not available in this browser';
     return;
   }
   recog = new SR();
-  recog.continuous     = false;
-  recog.interimResults = false;
-  recog.lang           = 'en-US';
+  recog.continuous = false; recog.interimResults = false; recog.lang = 'en-US';
   recog.onresult = e => {
     const txt = e.results[0][0].transcript.trim();
     const h = document.getElementById('vhint');
@@ -167,7 +168,7 @@ export function initMicButton() {
   });
 }
 
-// ── Passive "Hey Jarvis" ───────────────────────────────────────────────────
+// ── Passive "Hey Jarvis" ──────────────────────────────────────────────────
 let pOn = false, pInst = null;
 function startPassive() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -177,7 +178,7 @@ function startPassive() {
     pInst.continuous = true; pInst.interimResults = true; pInst.lang = 'en-US';
     pInst.onresult = e => {
       const txt = Array.from(e.results).slice(-2).map(r=>r[0].transcript).join(' ').toLowerCase();
-      if ((txt.includes('hey jarvis')||txt.includes('hey, jarvis')) && !micActive) {
+      if ((txt.includes('hey jarvis') || txt.includes('hey, jarvis')) && !micActive) {
         pOn = false; try { pInst?.abort(); } catch {}
         setTimeout(startMic, 300);
       }
@@ -189,9 +190,9 @@ function startPassive() {
 }
 export function initPassiveListening() { setTimeout(startPassive, 2000); }
 
-// ── Settings ───────────────────────────────────────────────────────────────
+// ── Settings (override key/model if needed) ───────────────────────────────
 export function initSettings() {
-  const modal = document.getElementById('cfg-modal');
+  const modal  = document.getElementById('cfg-modal');
   const fields = { 's-key':'aiKey', 's-model':'aiModel', 's-oc':'ocUrl', 's-prompt':'sysPrompt' };
 
   document.getElementById('cfg-btn')?.addEventListener('click', () => {
@@ -211,6 +212,6 @@ export function initSettings() {
     });
     saveCFG(patch);
     modal?.classList.remove('on');
-    addActivityLog('Settings saved — voice ready');
+    addActivityLog('Settings saved');
   });
 }
