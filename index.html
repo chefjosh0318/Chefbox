@@ -276,7 +276,7 @@ html,body{height:100%;background:#060810;color:#e8eaf0;font-family:'Inter',sans-
 </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
+<canvas id="bg-canvas"></canvas>
 
 <div id="app">
   <!-- HEADER -->
@@ -306,7 +306,7 @@ html,body{height:100%;background:#060810;color:#e8eaf0;font-family:'Inter',sans-
     <button class="btab" data-b="sprig">Sprig & Fork</button>
     <div class="bnav-r">
       <div class="ldot"></div>
-      MRR&nbsp;<span id="mrr-live">$13,094</span>
+      MRR&nbsp;<span id="mrr-live">$10,236</span>
     </div>
   </nav>
 
@@ -319,11 +319,11 @@ html,body{height:100%;background:#060810;color:#e8eaf0;font-family:'Inter',sans-
       <!-- Revenue (Stripe live) -->
       <div class="card">
         <div class="card-hd">Revenue <span class="badge" id="mrr-src">Stripe Live</span></div>
-        <div class="mrr-num" id="mrr-v">$13,094</div>
-        <div class="mrr-sub">Monthly Recurring Revenue</div>
+        <div class="mrr-num" id="mrr-v">$10,236</div>
+        <div class="mrr-sub">Monthly Recurring · Target $20,236</div>
         <div class="prog-wrap">
-          <div class="prog-track"><div class="prog-fill" id="mrr-bar" style="width:65%"></div></div>
-          <div class="prog-labels"><span>$0</span><span id="mrr-pct">65% to target</span><span>$20,236</span></div>
+          <div class="prog-track"><div class="prog-fill" id="mrr-bar" style="width:51%"></div></div>
+          <div class="prog-labels"><span>$0</span><span id="mrr-pct">51% · Gap $10,000</span><span>$20,236</span></div>
         </div>
         <div class="kpi-grid">
           <div class="kpi"><div class="kpi-v" id="k-active">7</div><div class="kpi-l">Active</div></div>
@@ -335,7 +335,7 @@ html,body{height:100%;background:#060810;color:#e8eaf0;font-family:'Inter',sans-
       <div class="card">
         <div class="card-hd">ChefBox Members</div>
         <div id="members-list">
-          <div class="smrow"><div><div class="sm-name">Jen</div></div><div style="text-align:right"><div class="sm-amt">$660/wk</div></div></div>
+          <div class="smrow"><div><div class="sm-name">Jen</div><div class="sm-int">⚠ Duplicate sub in Stripe</div></div><div style="text-align:right"><div class="sm-amt">$660/wk</div></div></div>
           <div class="smrow"><div><div class="sm-name">Heather Larson</div></div><div style="text-align:right"><div class="sm-amt">$395/wk</div></div></div>
           <div class="smrow"><div><div class="sm-name">Terrin Courtney</div></div><div style="text-align:right"><div class="sm-amt">$285/wk</div></div></div>
           <div class="smrow"><div><div class="sm-name">Melissa Hudson-Gant</div><div class="sm-int">Paused ~2wk</div></div><div style="text-align:right"><div class="sm-amt" style="color:var(--y)">$285/wk</div></div></div>
@@ -447,7 +447,7 @@ html,body{height:100%;background:#060810;color:#e8eaf0;font-family:'Inter',sans-
   <div id="vzone">
     <div class="vi">
       <div id="vhint">Say "Hey Jarvis" or press Space</div>
-      <div id="vsub">Replies via OpenAI · Voice relay active</div>
+      <div id="vsub">OpenAI GPT-4o · Relays to Telegram</div>
     </div>
     <div class="mwrap">
       <div class="mring"></div>
