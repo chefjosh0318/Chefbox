@@ -345,7 +345,7 @@
 <!-- HEADER -->
 <header id="header">
   <div class="wordmark">
-    <span>ChefBox</span>
+    <span data-agent-name>ChefBox</span>
     <div class="wordmark-dot"></div>
   </div>
   <div class="header-right">
@@ -442,6 +442,27 @@
   <div class="card-label">Active Task</div>
   <div class="card-value" style="font-size:15px;line-height:1.4">Scaling bisque recipe</div>
   <div class="card-sub">For service at 7 PM</div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-overlay" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;">
+  <div style="background:#16171d;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;width:340px;max-width:90vw;font-size:13px;">
+    <div style="font-size:15px;font-weight:600;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+      Settings
+      <button id="settings-close" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    <label style="display:block;margin-bottom:4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Agent Name</label>
+    <input id="s-name" type="text" placeholder="ChefBox" style="width:100%;margin-bottom:14px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;">
+    <label style="display:block;margin-bottom:4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:.08em">API Endpoint</label>
+    <input id="s-url" type="text" placeholder="https://api.openai.com/v1/chat/completions" style="width:100%;margin-bottom:14px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;">
+    <label style="display:block;margin-bottom:4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:.08em">API Key</label>
+    <input id="s-key" type="password" placeholder="sk-..." style="width:100%;margin-bottom:14px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;">
+    <label style="display:block;margin-bottom:4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Model</label>
+    <input id="s-model" type="text" placeholder="gpt-4o" style="width:100%;margin-bottom:14px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;">
+    <label style="display:block;margin-bottom:4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:.08em">System Prompt</label>
+    <textarea id="s-prompt" rows="3" style="width:100%;margin-bottom:20px;padding:8px 10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+    <button id="settings-save" style="width:100%;padding:10px;background:#2DD4A8;border:none;border-radius:8px;color:#0E0F13;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;">Save & Apply</button>
+  </div>
 </div>
 
 <!-- MIC BAR -->
@@ -675,50 +696,227 @@ window.addEventListener('resize', () => {
   composer.setSize(w, h);
 });
 
-// ─── Mic button ───────────────────────────────────────────────────────────────
-const micBtn   = document.getElementById('mic-btn');
-const micIcon  = document.getElementById('mic-icon');
-const stopIcon = document.getElementById('stop-icon');
-const micHint  = document.getElementById('mic-hint');
+// ─── Config (fill in your keys or set via the settings panel) ────────────────
+const CFG = {
+  agentName:  localStorage.getItem('cfg_agentName')  || 'ChefBox',
+  apiKey:     localStorage.getItem('cfg_apiKey')     || '',
+  apiUrl:     localStorage.getItem('cfg_apiUrl')     || 'https://api.openai.com/v1/chat/completions',
+  model:      localStorage.getItem('cfg_model')      || 'gpt-4o',
+  systemPrompt: localStorage.getItem('cfg_systemPrompt') || 'You are a helpful kitchen AI assistant.',
+};
+
+function saveCFG() {
+  Object.entries(CFG).forEach(([k,v]) => localStorage.setItem('cfg_'+k, v));
+}
+
+// Apply name everywhere it appears
+document.querySelectorAll('[data-agent-name]').forEach(el => el.textContent = CFG.agentName);
+document.getElementById('mic-hint').textContent = `TAP OR SAY 'HEY ${CFG.agentName.toUpperCase()}'`;
+document.title = CFG.agentName;
+
+// ─── Mic / voice state ────────────────────────────────────────────────────────
+const micBtn    = document.getElementById('mic-btn');
+const micIcon   = document.getElementById('mic-icon');
+const stopIcon  = document.getElementById('stop-icon');
+const micHint   = document.getElementById('mic-hint');
 const statusDot = document.getElementById('status-dot');
 
 let _listening   = false;
 let _voiceBright = 0;
-let _resetTimer  = null;
+let _analyser    = null;
+let _ampFrame    = null;
 
-function setListening(on) {
-  _listening          = on;
-  _voiceBright        = on ? 1.0 : 0;
-  micBtn.classList.toggle('active', on);
-  micIcon.style.display  = on ? 'none'  : 'block';
-  stopIcon.style.display = on ? 'block' : 'none';
-  micHint.textContent    = on ? "LISTENING…" : "TAP OR SAY 'HEY CHEFBOX'";
-  statusDot.className    = on ? 'listening' : '';
-  window.dispatchEvent(new CustomEvent('trillion:mic-toggle', { detail: { listening: on } }));
+// Drive the orb brightness from real mic amplitude while listening
+function startAmpLoop() {
+  if (!_analyser) return;
+  const buf = new Uint8Array(_analyser.frequencyBinCount);
+  function loop() {
+    if (!_listening) { _voiceBright = 0; return; }
+    _analyser.getByteFrequencyData(buf);
+    const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
+    _voiceBright = Math.min(1, avg / 60);
+    _ampFrame = requestAnimationFrame(loop);
+  }
+  loop();
 }
 
-micBtn.addEventListener('click', () => {
-  clearTimeout(_resetTimer);
-  if (_listening) {
-    setListening(false);
+async function initMic() {
+  if (_analyser) return;
+  try {
+    const stream  = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx     = new (window.AudioContext || window.webkitAudioContext)();
+    const src     = ctx.createMediaStreamSource(stream);
+    _analyser     = ctx.createAnalyser();
+    _analyser.fftSize = 256;
+    src.connect(_analyser);
+  } catch(e) {
+    console.warn('Mic access denied:', e);
+  }
+}
+
+function setUI(state) {
+  // state: 'idle' | 'listening' | 'processing' | 'speaking'
+  const hints = {
+    idle:       `TAP OR SAY 'HEY ${CFG.agentName.toUpperCase()}'`,
+    listening:  'LISTENING…',
+    processing: 'THINKING…',
+    speaking:   'SPEAKING…',
+  };
+  micHint.textContent = hints[state] || hints.idle;
+  statusDot.className = state === 'idle' ? '' : state;
+  const active = state !== 'idle';
+  micBtn.classList.toggle('active', active);
+  micIcon.style.display  = active ? 'none'  : 'block';
+  stopIcon.style.display = active ? 'block' : 'none';
+  _listening = state === 'listening';
+  if (!_listening) { cancelAnimationFrame(_ampFrame); _voiceBright = 0; }
+}
+
+// ─── Speech Recognition ───────────────────────────────────────────────────────
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+if (SR) {
+  recognition = new SR();
+  recognition.continuous    = false;
+  recognition.interimResults = true;
+  recognition.lang          = 'en-US';
+
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    if (e.results[e.results.length - 1].isFinal) {
+      setUI('processing');
+      callAI(transcript);
+    }
+  };
+
+  recognition.onerror = (e) => {
+    console.warn('Speech error:', e.error);
+    setUI('idle');
+  };
+
+  recognition.onend = () => {
+    if (_listening) setUI('idle');
+  };
+}
+
+// ─── AI call ──────────────────────────────────────────────────────────────────
+async function callAI(userText) {
+  if (!CFG.apiKey || !CFG.apiUrl) {
+    showResponseCard('No API key set', 'Open settings (⚙) and add your key.', 'Config needed');
+    setUI('idle');
     return;
   }
-  setListening(true);
+  try {
+    const res = await fetch(CFG.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${CFG.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: CFG.model,
+        messages: [
+          { role: 'system', content: CFG.systemPrompt },
+          { role: 'user',   content: userText },
+        ],
+      }),
+    });
+    const data  = await res.json();
+    const reply = data.choices?.[0]?.message?.content
+               || data.content?.[0]?.text
+               || data.error?.message
+               || 'No response';
+    speak(reply);
+    showResponseCard(userText, reply);
+  } catch(e) {
+    console.error(e);
+    setUI('idle');
+  }
+}
 
-  // Demo: auto-transition to processing then idle
-  _resetTimer = setTimeout(() => {
-    _voiceBright    = 0.6;
-    statusDot.className = 'processing';
-    micHint.textContent = "PROCESSING…";
+// ─── Text-to-speech ───────────────────────────────────────────────────────────
+function speak(text) {
+  if (!window.speechSynthesis) { setUI('idle'); return; }
+  window.speechSynthesis.cancel();
+  const utt  = new SpeechSynthesisUtterance(text);
+  utt.rate   = 1.05;
+  utt.pitch  = 1.0;
+  utt.volume = 1.0;
+  setUI('speaking');
+  _voiceBright = 0.7;
+  utt.onend  = () => { setUI('idle'); _voiceBright = 0; };
+  utt.onerror = () => { setUI('idle'); _voiceBright = 0; };
+  window.speechSynthesis.speak(utt);
+}
 
-    _resetTimer = setTimeout(() => {
-      setListening(false);
-    }, 2000);
-  }, 3000);
+// ─── Response card ────────────────────────────────────────────────────────────
+function showResponseCard(query, reply, label = 'Response') {
+  const existing = document.getElementById('ai-response-card');
+  if (existing) existing.remove();
+  const card = document.createElement('div');
+  card.id        = 'ai-response-card';
+  card.className = 'response-card';
+  card.style.cssText = 'bottom:134px;right:284px;max-width:280px;animation-delay:0s';
+  card.innerHTML = `
+    <button class="card-close" onclick="this.closest('.response-card').remove()">✕</button>
+    <div class="card-label">${label}</div>
+    <div class="card-value" style="font-size:13px;line-height:1.5;font-weight:400">${reply}</div>
+    <div class="card-sub" style="margin-top:6px;font-style:italic;opacity:.6">"${query}"</div>
+  `;
+  document.body.appendChild(card);
+}
+
+// ─── Mic button click ─────────────────────────────────────────────────────────
+micBtn.addEventListener('click', async () => {
+  if (window.speechSynthesis?.speaking) { window.speechSynthesis.cancel(); setUI('idle'); return; }
+  if (_listening) { recognition?.abort(); setUI('idle'); return; }
+
+  await initMic();
+  setUI('listening');
+  startAmpLoop();
+
+  if (recognition) {
+    try { recognition.start(); }
+    catch(e) { /* already started */ }
+  } else {
+    // Fallback: no SR support — just show config card
+    showResponseCard('', 'Speech Recognition not supported in this browser. Try Chrome.', 'Browser issue');
+    setUI('idle');
+  }
+
+  window.dispatchEvent(new CustomEvent('chefbox:mic-toggle', { detail: { listening: true } }));
 });
 
-// Expose for audio-amplitude wiring
-window.setVoiceBright = v => { _voiceBright = Math.max(0, Math.min(1, v)); };
+// ─── Settings modal ───────────────────────────────────────────────────────────
+const overlay  = document.getElementById('settings-overlay');
+const settingsBtn = document.querySelector('.ghost-btn[title="Settings"]');
+
+function openSettings() {
+  document.getElementById('s-name').value   = CFG.agentName;
+  document.getElementById('s-url').value    = CFG.apiUrl;
+  document.getElementById('s-key').value    = CFG.apiKey;
+  document.getElementById('s-model').value  = CFG.model;
+  document.getElementById('s-prompt').value = CFG.systemPrompt;
+  overlay.style.display = 'flex';
+}
+
+settingsBtn.addEventListener('click', openSettings);
+document.getElementById('settings-close').addEventListener('click', () => overlay.style.display = 'none');
+overlay.addEventListener('click', e => { if (e.target === overlay) overlay.style.display = 'none'; });
+
+document.getElementById('settings-save').addEventListener('click', () => {
+  CFG.agentName    = document.getElementById('s-name').value.trim()   || CFG.agentName;
+  CFG.apiUrl       = document.getElementById('s-url').value.trim()    || CFG.apiUrl;
+  CFG.apiKey       = document.getElementById('s-key').value.trim()    || CFG.apiKey;
+  CFG.model        = document.getElementById('s-model').value.trim()  || CFG.model;
+  CFG.systemPrompt = document.getElementById('s-prompt').value.trim() || CFG.systemPrompt;
+  saveCFG();
+  document.querySelectorAll('[data-agent-name]').forEach(el => el.textContent = CFG.agentName);
+  micHint.textContent = `TAP OR SAY 'HEY ${CFG.agentName.toUpperCase()}'`;
+  document.title = CFG.agentName;
+  overlay.style.display = 'none';
+});
 
 // ─── Activity panel toggle ────────────────────────────────────────────────────
 const panel    = document.getElementById('activity-panel');
