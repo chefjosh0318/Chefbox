@@ -1,12 +1,12 @@
 // ── Config ────────────────────────────────────────────────────────────────────
 export const CFG = {
-  mcApiUrl:   '',
-  ocUrl:      'http://127.0.0.1:18789',
+  mcApiUrl:   'https://be408b7e-0fdc-4e2c-a227-52d97cd3c704.cfargotunnel.com',
+  ocUrl:      'https://be408b7e-0fdc-4e2c-a227-52d97cd3c704.cfargotunnel.com',
   agentName:  'Jarvis',
-  aiUrl:      '',
+  aiUrl:      'https://api.openai.com/v1/chat/completions',
   aiKey:      '',
   aiModel:    'gpt-4o',
-  sysPrompt:  'You are Jarvis, the AI CEO of Summit Brands Inc. You help manage ChefBox Reserve, Aura, and Sprig & Fork. Be concise and decisive.',
+  sysPrompt:  'You are Jarvis, the AI CEO of Summit Brands Inc. You help manage ChefBox Reserve, Aura, and Sprig & Fork. You have access to live data from Supabase, HubSpot, and the Summit Brands growth OS. Be concise, decisive, and data-driven.',
 };
 
 export function loadCFG() {
@@ -21,231 +21,200 @@ export function saveCFG(patch) {
   localStorage.setItem('jarvis_cfg', JSON.stringify(CFG));
 }
 
-// ── Static data ───────────────────────────────────────────────────────────────
-export const MEMBERS = [
-  { name: 'Marcus R.',   svc: 'ChefBox Reserve', plan: '$97/mo',  status: 'active' },
-  { name: 'Priya T.',    svc: 'ChefBox Reserve', plan: '$197/mo', status: 'active' },
-  { name: 'Devon K.',    svc: 'Aura',            plan: '$49/mo',  status: 'active' },
-  { name: 'Aaliyah S.', svc: 'Aura',            plan: '$99/mo',  status: 'active' },
-  { name: 'Jonah W.',   svc: 'Sprig & Fork',    plan: '$29/mo',  status: 'active' },
-  { name: 'Camille N.', svc: 'ChefBox Reserve', plan: '$97/mo',  status: 'active' },
-  { name: 'Rafael G.',  svc: 'Sprig & Fork',    plan: '$49/mo',  status: 'active' },
-  { name: 'Tasha B.',   svc: 'Aura',            plan: '$49/mo',  status: 'paused' },
-  { name: 'Owen M.',    svc: 'ChefBox Reserve', plan: '$97/mo',  status: 'paused' },
-];
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://jyyqrlfxaypjdxwmurnt.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5eXFybGZ4YXlwamR4d211cm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MzI3NTIsImV4cCI6MjA2MTEwODc1Mn0.F5kFEBx3pTfk1mvETGUGmCBsiyGEZRfkJiI0lnNxpGs';
 
-export const CRON_DEFS = [
-  // Jarvis
-  { id:'j1', agent:'JARVIS', name:'Daily Briefing',       schedule:'06:00 daily',  desc:'Pull KPIs, summarise overnight activity' },
-  { id:'j2', agent:'JARVIS', name:'Revenue Snapshot',     schedule:'08:00 daily',  desc:'MRR delta + churn check across all brands' },
-  { id:'j3', agent:'JARVIS', name:'Weekly CEO Report',    schedule:'Mon 07:00',    desc:'Full week wrap, goals vs actuals, priorities' },
-  // Cipher
-  { id:'c1', agent:'CIPHER', name:'Lead Scrape — Apollo', schedule:'09:00 daily',  desc:'Pull 50 fresh ICP leads per brand from Apollo' },
-  { id:'c2', agent:'CIPHER', name:'Outreach Sequences',   schedule:'10:00 daily',  desc:'Send personalised cold emails via Gmail SMTP' },
-  { id:'c3', agent:'CIPHER', name:'Pipeline Sync',        schedule:'14:00 daily',  desc:'Sync HubSpot deals with Google Sheets tracker' },
-  // Forge
-  { id:'f1', agent:'FORGE',  name:'Content Calendar',     schedule:'Mon 08:00',    desc:'Generate 7-day social + blog content plan' },
-  { id:'f2', agent:'FORGE',  name:'Draft Posts',          schedule:'Tue 09:00',    desc:'Write IG + LinkedIn posts for all brands' },
-  { id:'f3', agent:'FORGE',  name:'Email Newsletter',     schedule:'Wed 10:00',    desc:'Draft weekly member newsletter per brand' },
-  // Nova
-  { id:'n1', agent:'NOVA',   name:'Engagement Monitor',   schedule:'Every 4 hrs',  desc:'Watch brand mentions, reply to comments' },
-  { id:'n2', agent:'NOVA',   name:'Member Check-in',      schedule:'Thu 09:00',    desc:'Proactive outreach to at-risk members' },
-  // Titan
-  { id:'t1', agent:'TITAN',  name:'Ops Health Check',     schedule:'Every 6 hrs',  desc:'Verify API integrations, flag errors' },
-  { id:'t2', agent:'TITAN',  name:'Billing Reconcile',    schedule:'1st of month', desc:'Match Stripe charges to membership records' },
-];
-
-const AGENT_COLORS = { JARVIS:'#2DD4A8', CIPHER:'#7c6bff', FORGE:'#f59e0b', NOVA:'#fb7185', TITAN:'#60a5fa' };
-
-// ── Fetch helpers ─────────────────────────────────────────────────────────────
-async function apiFetch(path) {
-  const base = CFG.mcApiUrl.replace(/\/$/, '');
-  if (!base) return null;
-  const r = await fetch(base + path, { signal: AbortSignal.timeout(8000) });
-  if (!r.ok) throw new Error(r.status);
-  return r.json();
-}
-
-export async function fetchAll() {
-  const [stripe, pipe, crons] = await Promise.allSettled([
-    apiFetch('/api/summit/stripe'),
-    apiFetch('/api/summit/pipeline'),
-    apiFetch('/api/summit/crons'),
-  ]);
-  return {
-    stripe: stripe.status === 'fulfilled' ? stripe.value : null,
-    pipe:   pipe.status   === 'fulfilled' ? pipe.value   : null,
-    crons:  crons.status  === 'fulfilled' ? crons.value  : null,
-  };
-}
-
-// ── Render: Revenue panel ─────────────────────────────────────────────────────
-export function renderRevenue(data) {
-  const el = document.getElementById('rev-content');
-  if (!el) return;
-  const mrr = data?.mrr ?? 10236;
-  const goal = data?.goal ?? 20000;
-  const pct = Math.min(100, Math.round(mrr / goal * 100));
-  const active = data?.active_count ?? 7;
-  const total  = data?.total_count  ?? 9;
-  const gap    = Math.max(0, goal - mrr);
-  el.innerHTML = `
-    <div class="mrr-big">$${mrr.toLocaleString()}</div>
-    <div class="mrr-sub">MRR · Goal $${(goal/1000).toFixed(0)}k</div>
-    <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
-    <div class="srow"><span class="slabel">To goal</span><span class="sval warn">$${gap.toLocaleString()}</span></div>
-    <div class="srow"><span class="slabel">Members</span><span class="sval ok">${active} active · ${total-active} paused</span></div>
-    <div class="srow"><span class="slabel">Progress</span><span class="sval">${pct}%</span></div>
-  `;
-}
-
-// ── Render: Pipeline panel ────────────────────────────────────────────────────
-const BRANDS = [
-  { name:'ChefBox Reserve', color:'#2DD4A8', key:'chefbox' },
-  { name:'Aura',            color:'#a78bfa', key:'aura'    },
-  { name:'Sprig & Fork',    color:'#f59e0b', key:'sprig'   },
-];
-
-export function renderPipeline(data) {
-  const el = document.getElementById('pipe-content');
-  if (!el) return;
-  el.innerHTML = BRANDS.map(b => {
-    const d = data?.[b.key];
-    const leads   = d?.leads   ?? '—';
-    const convs   = d?.convs   ?? '—';
-    const rev_str = d?.revenue != null ? `$${Number(d.revenue).toLocaleString()}` : '—';
-    return `<div class="brand-row">
-      <div class="bdot" style="background:${b.color}"></div>
-      <div>
-        <div class="bname">${b.name}</div>
-        <div class="bsub">${leads} leads · ${convs} convs · ${rev_str}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── Render: Agent / Cron panel ────────────────────────────────────────────────
-let _confirmPending = null;
-
-export function renderAgents(cronStatus) {
-  const el = document.getElementById('panel-content');
-  if (!el) return;
-
-  const grouped = {};
-  CRON_DEFS.forEach(c => { (grouped[c.agent] ||= []).push(c); });
-
-  const agents = Object.keys(grouped);
-  let html = '';
-  agents.forEach(agent => {
-    const crons = grouped[agent];
-    const errCount = crons.filter(c => cronStatus?.[c.id]?.status === 'error').length;
-    const col = AGENT_COLORS[agent] || '#fff';
-    html += `<div class="sec-hdr">
-      <span style="color:${col}">${agent}</span>
-      ${errCount ? `<span class="sec-cnt has-err">${errCount} err</span>` : `<span class="sec-cnt">${crons.length}</span>`}
-    </div>`;
-    crons.forEach(c => {
-      const st = cronStatus?.[c.id];
-      const dotCls = st?.status === 'error' ? 'error' : st?.status === 'ok' ? 'ok' : 'idle';
-      const lastRun = st?.last_run ? new Date(st.last_run).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
-      html += `<div class="entry">
-        <div class="entry-top">
-          <div class="entry-left"><div class="cdot ${dotCls}"></div><span class="etitle">${c.name}</span></div>
-          <button class="run-btn" data-cron-id="${c.id}" data-cron-name="${c.name}">▶ Run</button>
-        </div>
-        <div class="esub">${c.schedule}${lastRun ? ' · ran '+lastRun : ''}</div>
-      </div>`;
-    });
-  });
-  el.innerHTML = html;
-
-  el.querySelectorAll('.run-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id   = btn.dataset.cronId;
-      const name = btn.dataset.cronName;
-      showConfirm(`Run "${name}"?`, `This will immediately trigger the ${name} cron job.`, () => runCron(id, name));
-    });
-  });
-}
-
-function showConfirm(title, msg, onOk) {
-  document.getElementById('confirm-ttl').textContent = title;
-  document.getElementById('confirm-msg').textContent = msg;
-  _confirmPending = onOk;
-  document.getElementById('confirm-modal').classList.add('open');
-}
-
-async function runCron(id, name) {
+async function sbFetch(table, params = '') {
   try {
-    const base = CFG.mcApiUrl.replace(/\/$/, '');
-    if (!base) { addActivityLog(`No API URL set — can't run ${name}`); return; }
-    const r = await fetch(`${base}/api/summit/crons/${id}/run`, { method: 'POST', signal: AbortSignal.timeout(10000) });
-    addActivityLog(r.ok ? `✓ Triggered: ${name}` : `✗ Error running: ${name} (${r.status})`);
-  } catch (e) {
-    addActivityLog(`✗ Failed to reach API for ${name}`);
-  }
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
 }
+
+// ── Live data fetchers ────────────────────────────────────────────────────────
+export async function fetchMembers() {
+  const rows = await sbFetch('chefbox_members', 'select=name,email,status,weekly_rate&order=name');
+  if (!rows) return MEMBERS_FALLBACK;
+  return rows.map(m => ({
+    name: m.name || m.email?.split('@')[0] || 'Member',
+    svc: 'ChefBox Reserve',
+    plan: m.weekly_rate ? `$${m.weekly_rate}/wk` : '$175/wk',
+    status: m.status || 'active',
+  }));
+}
+
+export async function fetchMRR() {
+  const rows = await sbFetch('chefbox_members', 'select=status,weekly_rate&status=eq.active');
+  if (!rows) return { mrr: 0, active: 0, paused: 0 };
+  const active = rows.filter(m => m.status === 'active');
+  const paused = rows.filter(m => m.status === 'paused' || m.status === 'inactive');
+  const mrr = active.reduce((s, m) => s + (Number(m.weekly_rate) || 175) * 4.33, 0);
+  return { mrr: Math.round(mrr), active: active.length, paused: paused.length };
+}
+
+export async function fetchBookings() {
+  const rows = await sbFetch('booking_conflicts', 'select=client_name,booking_date,total_amount,status,deposit_paid&status=eq.active&deposit_paid=eq.true&order=booking_date');
+  if (!rows) return [];
+  return rows.map(b => ({
+    client: b.client_name || 'Client',
+    date: b.booking_date ? new Date(b.booking_date).toLocaleDateString('en-US', {month:'short',day:'numeric'}) : '—',
+    amount: b.total_amount ? `$${Number(b.total_amount).toLocaleString()}` : '—',
+    brand: 'Sprig & Fork',
+    status: 'confirmed',
+  }));
+}
+
+export async function fetchAuraEvents() {
+  const today = new Date().toISOString().split('T')[0];
+  const rows = await sbFetch('events', `select=client_name,event_date,status&event_date=gte.${today}&order=event_date&limit=5`);
+  if (!rows) return [];
+  return rows.map(e => ({
+    client: e.client_name || 'Client',
+    date: e.event_date ? new Date(e.event_date).toLocaleDateString('en-US', {month:'short',day:'numeric'}) : '—',
+    brand: 'Aura',
+    status: e.status || 'upcoming',
+  }));
+}
+
+export async function fetchBlogPosts() {
+  const rows = await sbFetch('blog_posts', 'select=slug,status&status=eq.published');
+  if (!rows) return { chefbox: 0, aura: 0, sprig: 0, total: 0 };
+  const chefbox = rows.filter(p => p.slug?.includes('personal-chef') || p.slug?.includes('chef-nashville') || p.slug?.includes('meal-delivery')).length;
+  const aura = rows.filter(p => p.slug?.includes('private-chef') || p.slug?.includes('private-dining') || p.slug?.includes('rehearsal') || p.slug?.includes('proposal')).length;
+  const sprig = rows.filter(p => p.slug?.includes('catering') || p.slug?.includes('corporate') || p.slug?.includes('office')).length;
+  return { chefbox, aura, sprig, total: rows.length };
+}
+
+export async function fetchPipeline() {
+  // Static for now — HubSpot API relay not yet implemented
+  return { total: 78, attempted: 75, connected: 2, deals: 1 };
+}
+
+// ── Fallback static members ───────────────────────────────────────────────────
+export const MEMBERS_FALLBACK = [
+  { name: 'Jenn',            svc: 'ChefBox Reserve', plan: 'TBD/wk',    status: 'active' },
+  { name: 'Hayley Williams', svc: 'ChefBox Reserve', plan: '$175/wk',   status: 'paused', note: 'Resumes May 18' },
+  { name: 'Melissa',        svc: 'ChefBox Reserve', plan: '$175/wk',   status: 'paused', note: '~2 wk remaining' },
+  { name: 'Heather',        svc: 'ChefBox Reserve', plan: '$175/wk',   status: 'active' },
+  { name: 'Jojo',           svc: 'ChefBox Reserve', plan: '$175/wk',   status: 'active' },
+  { name: 'Kellar',         svc: 'ChefBox Reserve', plan: '$175/wk',   status: 'active' },
+  { name: 'Keegan',         svc: 'ChefBox Reserve', plan: '$175/wk',   status: 'active' },
+  { name: 'Ronnie',         svc: 'ChefBox Reserve', plan: '$214/wk',   status: 'active', note: 'Rejoined Jan 2026' },
+  { name: 'Terrin',         svc: 'ChefBox Reserve', plan: '$175/wk',   status: 'active' },
+];
+
+// ── Agents ────────────────────────────────────────────────────────────────────
+export const AGENTS = [
+  {
+    id: 'JARVIS',
+    name: 'Jarvis',
+    role: 'CEO — Strategy & Routing',
+    color: '#2DD4A8',
+    icon: '🧠',
+    desc: 'Orchestrates all agents, routes tasks, sends daily briefings and revenue snapshots.',
+    crons: ['morning-recap', 'revenue-snapshot-daily', 'summit-ceo-morning-plan'],
+  },
+  {
+    id: 'CIPHER',
+    name: 'Cipher',
+    role: 'Sales — Outreach & Pipeline',
+    color: '#7c6bff',
+    icon: '📡',
+    desc: 'Cold email sequences for all 3 brands, HubSpot CRM sync, reply detection, LinkedIn prospect sourcing.',
+    crons: ['cipher-chefbox-sales', 'cipher-aura-sales', 'cipher-sprig-sales', 'reply-checker', 'cipher-linkedin-prospects'],
+  },
+  {
+    id: 'FORGE',
+    name: 'Forge',
+    role: 'Marketing — Content & SEO',
+    color: '#f59e0b',
+    icon: '✍️',
+    desc: 'Publishes SEO blog posts 3x/week across all brands, LinkedIn daily posts, social content rotation.',
+    crons: ['seo-content-agent', 'social-daily-native', 'summit-marketing-daily', 'linkedin-daily-post'],
+  },
+  {
+    id: 'SCOUT',
+    name: 'Scout',
+    role: 'SEO — Keyword Research & Analytics',
+    color: '#34d399',
+    icon: '🔍',
+    desc: 'Weekly GA4 traffic analysis, Search Console keyword tracking, priority action reports, free lead sourcing via Tavily.',
+    crons: ['seo-analytics-weekly', 'web-lead-engine-daily', 'free-lead-engine-daily'],
+  },
+  {
+    id: 'NOVA',
+    name: 'Nova',
+    role: 'CX — Member Engagement & Reviews',
+    color: '#fb7185',
+    icon: '⭐',
+    desc: 'Sends one-time GBP review requests to ChefBox members, post-event review requests for Aura/Sprig, Typeform inbound handling.',
+    crons: ['review-agent-daily', 'typeform-inbound-handler'],
+  },
+  {
+    id: 'ATLAS',
+    name: 'Atlas',
+    role: 'Growth — Referral Partner Network',
+    color: '#a78bfa',
+    icon: '🤝',
+    desc: 'Sources and pitches referral partners — wedding planners, financial advisors, real estate brokers, coworking spaces. $75/$200/$100 commission deals.',
+    crons: ['referral-engine-daily'],
+  },
+  {
+    id: 'TITAN',
+    name: 'Titan',
+    role: 'Ops — Bookings & Fulfillment',
+    color: '#60a5fa',
+    icon: '⚙️',
+    desc: 'Monitors Sprig bookings (booking_conflicts + catering_quotes), Aura bookings (events table), auto-creates HubSpot deals, triggers review flow.',
+    crons: ['sprig-booking-monitor', 'aura-booking-monitor', 'summit-ops-daily'],
+  },
+];
+
+// ── Real cron schedule ────────────────────────────────────────────────────────
+export const CRON_DEFS = [
+  { id:'j1', agent:'JARVIS', name:'Morning Recap',          schedule:'7:30am CT daily',       desc:'Daily briefing — overnight activity, priorities, KPIs' },
+  { id:'j2', agent:'JARVIS', name:'Revenue Snapshot',       schedule:'8:00am CT daily',       desc:'MRR delta, active vs paused members, brand breakdown' },
+  { id:'j3', agent:'JARVIS', name:'CEO Morning Plan',       schedule:'8:00am CT daily',       desc:'Full orchestration — emails report to Joshua, routes tasks' },
+  { id:'c1', agent:'CIPHER', name:'ChefBox Sales',          schedule:'1:00pm CT daily',       desc:'Cold email sequence for ChefBox ICP leads' },
+  { id:'c2', agent:'CIPHER', name:'Aura Sales',             schedule:'1:15pm CT daily',       desc:'Aura booking outreach — proposal dinner, private dining' },
+  { id:'c3', agent:'CIPHER', name:'Sprig Sales',            schedule:'1:30pm CT daily',       desc:'Sprig corporate catering outreach' },
+  { id:'c4', agent:'CIPHER', name:'Reply Checker',          schedule:'Every 2 hours',         desc:'Scans Gmail INBOX, updates HubSpot on reply, Telegram alert' },
+  { id:'c5', agent:'CIPHER', name:'LinkedIn Prospects',     schedule:'9:00am CT Mon/Wed/Fri', desc:'Sends fresh prospect list to Telegram for manual connect' },
+  { id:'f1', agent:'FORGE',  name:'SEO Blog Content',       schedule:'10:00am CT Mon/Wed/Fri',desc:'Keyword-targeted blog post → Supabase → live on all 3 sites' },
+  { id:'f2', agent:'FORGE',  name:'Social Daily Native',    schedule:'9:30am CT daily',       desc:'Publishes native social post across brand channels' },
+  { id:'f3', agent:'FORGE',  name:'LinkedIn Daily Post',    schedule:'Daily',                 desc:'Joshua\'s LinkedIn post — rotates ChefBox/Aura/Sprig, Typeform CTA' },
+  { id:'f4', agent:'FORGE',  name:'Marketing Daily',        schedule:'Daily',                 desc:'Summit marketing agent daily tasks and content pipeline' },
+  { id:'s1', agent:'SCOUT',  name:'SEO Analytics',          schedule:'8:00am CT Mondays',     desc:'GA4 traffic report + Search Console + priority action list → email' },
+  { id:'s2', agent:'SCOUT',  name:'Free Lead Engine',       schedule:'9:00am CT daily',       desc:'Tavily search → contact page scraping → email-verified leads → HubSpot' },
+  { id:'s3', agent:'SCOUT',  name:'Web Lead Engine',        schedule:'Daily',                 desc:'Secondary lead sourcing — web scrape verified email leads' },
+  { id:'n1', agent:'NOVA',   name:'Review Agent',           schedule:'11:00am CT daily',      desc:'Post-event review requests (Aura/Sprig), one-time ChefBox asks' },
+  { id:'n2', agent:'NOVA',   name:'Typeform Inbound',       schedule:'Every 30 minutes',      desc:'Auto-reply to new Typeform leads, CRM entry, HubSpot sync' },
+  { id:'a1', agent:'ATLAS',  name:'Referral Engine',        schedule:'2:30pm CT daily',       desc:'Sources + pitches referral partners — planners, FAs, brokers' },
+  { id:'t1', agent:'TITAN',  name:'Sprig Booking Monitor',  schedule:'Every 2 hrs (:30)',     desc:'Watches booking_conflicts + catering_quotes → HubSpot deal + review' },
+  { id:'t2', agent:'TITAN',  name:'Aura Booking Monitor',   schedule:'Every 2 hours',         desc:'Watches events table → Telegram alert → HubSpot deal → review email' },
+  { id:'t3', agent:'TITAN',  name:'Ops Daily',              schedule:'10:00pm CT daily',      desc:'Summit ops health check — integration status, fulfillment review' },
+];
+
+const AGENT_COLORS = { JARVIS:'#2DD4A8', CIPHER:'#7c6bff', FORGE:'#f59e0b', SCOUT:'#34d399', NOVA:'#fb7185', ATLAS:'#a78bfa', TITAN:'#60a5fa' };
 
 // ── Activity log ──────────────────────────────────────────────────────────────
-const activityLog = [];
+const _actLog = [];
 export function addActivityLog(msg) {
-  const ts = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-  activityLog.unshift({ msg, ts });
-  if (activityLog.length > 30) activityLog.pop();
-  const el = document.getElementById('log-section');
-  if (el) el.insertAdjacentHTML('afterend', `<div class="entry"><div class="entry-top"><div class="entry-left"><div class="cdot ok"></div><span class="etitle" style="font-size:10px">${msg}</span></div><span class="esub">${ts}</span></div></div>`);
+  _actLog.unshift({ msg, ts: Date.now() });
+  if (_actLog.length > 80) _actLog.pop();
+  window.dispatchEvent(new CustomEvent('activity', { detail: { msg } }));
 }
+export function getActivityLog() { return _actLog; }
 
-// ── Render: Members modal ─────────────────────────────────────────────────────
-export function renderMembers(liveData) {
-  const el = document.getElementById('members-list');
-  if (!el) return;
-  const members = liveData ?? MEMBERS;
-  const active = members.filter(m => m.status === 'active');
-  const mrr = active.reduce((s, m) => s + parseInt(m.plan), 0);
-  const goal = CFG.mrrGoal ?? 20000;
-
-  const bar = document.querySelector('#members-modal .mrr-bar');
-  if (bar) bar.innerHTML = `
-    <div class="mrr-cell"><div class="mrr-cell-v">$${mrr.toLocaleString()}</div><div class="mrr-cell-l">Active MRR</div></div>
-    <div class="mrr-cell"><div class="mrr-cell-v">$${Math.max(0,goal-mrr).toLocaleString()}</div><div class="mrr-cell-l">Gap to Goal</div></div>
-    <div class="mrr-cell"><div class="mrr-cell-v">${active.length} / ${members.length}</div><div class="mrr-cell-l">Active / Total</div></div>
-  `;
-
-  el.innerHTML = members.map(m => `
-    <div class="mem-row">
-      <div><div class="mem-name">${m.name}</div><div class="mem-svc">${m.svc}</div></div>
-      <div class="mem-rate">${m.plan}</div>
-      <div class="mbadge ${m.status}">${m.status}</div>
-    </div>
-  `).join('');
-}
-
-// ── Confirm modal wiring ──────────────────────────────────────────────────────
-export function initConfirmModal() {
-  document.getElementById('confirm-ok').addEventListener('click', () => {
-    document.getElementById('confirm-modal').classList.remove('open');
-    if (_confirmPending) { _confirmPending(); _confirmPending = null; }
-  });
-  document.getElementById('confirm-cancel').addEventListener('click', () => {
-    document.getElementById('confirm-modal').classList.remove('open');
-    _confirmPending = null;
-  });
-}
-
-// ── Poll loop ─────────────────────────────────────────────────────────────────
-let _pollTimer = null;
-export function startPolling(intervalMs = 60000) {
-  async function poll() {
-    const data = await fetchAll();
-    renderRevenue(data.stripe);
-    renderPipeline(data.pipe);
-    renderAgents(data.crons);
-  }
-  poll();
-  _pollTimer = setInterval(poll, intervalMs);
-}
-
-export function stopPolling() {
-  clearInterval(_pollTimer);
-}
+// ── Render helpers ────────────────────────────────────────────────────────────
+export function fmt(n) { return n?.toLocaleString() ?? '—'; }
+export function fmtMRR(n) { return n ? `$${n.toLocaleString()}` : '—'; }
