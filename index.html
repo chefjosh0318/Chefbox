@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChefBox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0E0F13;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #bg-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+    }
+
+    :root {
+      --accent: #2DD4A8;
+      --surface-bg: rgba(14,15,19,0.15);
+      --surface-blur: blur(14px);
+      --surface-border: rgba(255,255,255,0.06);
+    }
+
+    /* ── HEADER ── */
+    #header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 56px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: var(--surface-bg);
+      backdrop-filter: var(--surface-blur);
+      -webkit-backdrop-filter: var(--surface-blur);
+      border-bottom: 1px solid var(--surface-border);
+    }
+
+    .wordmark {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .wordmark-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ghost-btn {
+      width: 32px; height: 32px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: rgba(255,255,255,0.5);
+      transition: color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .ghost-btn:hover {
+      color: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .ghost-btn svg { width: 18px; height: 18px; }
+
+    .badge {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #ff4757;
+      border: 1.5px solid #0E0F13;
+    }
+
+    #status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #444;
+      transition: background 0.3s;
+    }
+
+    #status-dot.listening  { background: var(--accent); animation: pulse-dot 1.2s ease-in-out infinite; }
+    #status-dot.processing { background: #7c6bff;       animation: pulse-dot 0.8s ease-in-out infinite; }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.75); }
+    }
+
+    /* ── ACTIVITY PANEL ── */
+    #activity-panel {
+      position: fixed;
+      top: 56px; right: 0;
+      width: 260px;
+      height: calc(100vh - 56px - 120px);
+      z-index: 10;
+      background: var(--surface-bg);
+      backdrop-filter: var(--surface-blur);
+      -webkit-backdrop-filter: var(--surface-blur);
+      border-left: 1px solid var(--surface-border);
+      overflow: hidden;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #activity-panel.collapsed { width: 36px; }
+
+    .panel-toggle {
+      position: absolute;
+      top: 8px; left: 8px;
+      width: 20px; height: 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      z-index: 2;
+    }
+
+    .panel-toggle:hover { color: rgba(255,255,255,0.8); }
+
+    .panel-content {
+      padding: 8px 12px 12px 36px;
+      overflow-y: auto;
+      height: 100%;
+      opacity: 1;
+      transition: opacity 0.15s;
+    }
+
+    #activity-panel.collapsed .panel-content {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .section-header {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin: 16px 0 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-header:first-child { margin-top: 8px; }
+
+    .section-count {
+      background: rgba(255,255,255,0.08);
+      padding: 1px 5px;
+      border-radius: 8px;
+      font-size: 9px;
+    }
+
+    .entry {
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      border: 1px solid rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.03);
+      cursor: pointer;
+      animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+      transition: background 0.15s;
+    }
+
+    .entry:hover { background: rgba(255,255,255,0.07); }
+
+    @keyframes slide-in-right {
+      from { transform: translateX(20px); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+
+    .entry-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 2px;
+    }
+
+    .entry-sub {
+      font-size: 10px;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* ── RESPONSE CARDS ── */
+    .response-card {
+      position: fixed;
+      width: 240px;
+      background: rgba(22,23,29,0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-top: 2px solid var(--accent);
+      border-radius: 12px;
+      padding: 14px;
+      z-index: 20;
+      pointer-events: all;
+      animation: card-entry 0.5s cubic-bezier(0.16, 1, 0.3, 1) both,
+                 card-float 4s 0.5s ease-in-out infinite;
+    }
+
+    .response-card.revenue { width: 300px; }
+
+    @keyframes card-entry {
+      from { transform: rotateX(8deg) translateY(12px); opacity: 0; }
+      to   { transform: rotateX(0deg) translateY(0);    opacity: 1; }
+    }
+
+    @keyframes card-float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-6px); }
+    }
+
+    .card-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .card-value {
+      font-size: 22px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .card-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 3px;
+    }
+
+    .card-close {
+      position: absolute;
+      top: 8px; right: 8px;
+      width: 18px; height: 18px;
+      border: none;
+      background: none;
+      color: rgba(255,255,255,0.3);
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .card-close:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.06); }
+
+    /* ── MIC BAR ── */
+    #mic-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 120px;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    #mic-btn {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: #16171D;
+      border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: border-color 0.25s, box-shadow 0.25s, border-width 0.25s;
+      pointer-events: all;
+    }
+
+    #mic-btn.active {
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 24px rgba(45,212,168,0.5);
+    }
+
+    #mic-btn.active::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      animation: pulse-ring 1.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    }
+
+    @keyframes pulse-ring {
+      0%   { transform: scale(1);   opacity: 1; }
+      100% { transform: scale(1.65); opacity: 0; }
+    }
+
+    #mic-btn svg { width: 24px; height: 24px; }
+
+    #mic-hint {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.4);
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="wordmark">
+    <span>ChefBox</span>
+    <div class="wordmark-dot"></div>
+  </div>
+  <div class="header-right">
+    <button class="ghost-btn" title="Neural Map">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="12" cy="12" r="3"/>
+        <line x1="12" y1="2"  x2="12" y2="5"/>
+        <line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="2"  y1="12" x2="5"  y2="12"/>
+        <line x1="19" y1="12" x2="22" y2="12"/>
+        <line x1="5.6"  y1="5.6"  x2="7.8"  y2="7.8"/>
+        <line x1="16.2" y1="16.2" x2="18.4" y2="18.4"/>
+        <line x1="5.6"  y1="18.4" x2="7.8"  y2="16.2"/>
+        <line x1="16.2" y1="7.8"  x2="18.4" y2="5.6"/>
+      </svg>
+    </button>
+    <button class="ghost-btn" title="Alerts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <div class="badge"></div>
+    </button>
+    <button class="ghost-btn" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+    <div id="status-dot"></div>
+  </div>
+</header>
+
+<!-- ACTIVITY PANEL -->
+<div id="activity-panel">
+  <button class="panel-toggle" id="panel-toggle" title="Toggle panel">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </button>
+  <div class="panel-content">
+    <div class="section-header">Inbox Replies <span class="section-count">3</span></div>
+    <div class="entry" style="animation-delay:.04s">
+      <div class="entry-title">Table 4 — Allergy check</div>
+      <div class="entry-sub">2 min ago</div>
+    </div>
+    <div class="entry" style="animation-delay:.08s">
+      <div class="entry-title">Reservation update</div>
+      <div class="entry-sub">11 min ago</div>
+    </div>
+    <div class="entry" style="animation-delay:.12s">
+      <div class="entry-title">Supplier delivery ETA</div>
+      <div class="entry-sub">34 min ago</div>
+    </div>
+
+    <div class="section-header">Recipe Tasks <span class="section-count">2</span></div>
+    <div class="entry" style="animation-delay:.16s">
+      <div class="entry-title">Scale lobster bisque ×6</div>
+      <div class="entry-sub">Due tonight</div>
+    </div>
+    <div class="entry" style="animation-delay:.20s">
+      <div class="entry-title">Substitute: heavy cream</div>
+      <div class="entry-sub">Pending review</div>
+    </div>
+
+    <div class="section-header">Prep Tasks <span class="section-count">4</span></div>
+    <div class="entry" style="animation-delay:.24s">
+      <div class="entry-title">Mise en place — Station 2</div>
+      <div class="entry-sub">Starts in 30 min</div>
+    </div>
+    <div class="entry" style="animation-delay:.28s">
+      <div class="entry-title">Deglaze the fond</div>
+      <div class="entry-sub">Waiting on protein</div>
+    </div>
+
+    <div class="section-header">Menu Drafts <span class="section-count">1</span></div>
+    <div class="entry" style="animation-delay:.32s">
+      <div class="entry-title">Spring tasting menu v3</div>
+      <div class="entry-sub">Draft — needs pairing</div>
+    </div>
+  </div>
+</div>
+
+<!-- RESPONSE CARDS -->
+<div class="response-card revenue" style="bottom:134px; left:24px; animation-delay:0s">
+  <button class="card-close" onclick="this.closest('.response-card').remove()">✕</button>
+  <div class="card-label">Covers Tonight</div>
+  <div class="card-value">142</div>
+  <div class="card-sub">↑ 18% vs last Friday</div>
+</div>
+
+<div class="response-card" style="bottom:290px; left:24px; animation-delay:.15s">
+  <button class="card-close" onclick="this.closest('.response-card').remove()">✕</button>
+  <div class="card-label">Active Task</div>
+  <div class="card-value" style="font-size:15px;line-height:1.4">Scaling bisque recipe</div>
+  <div class="card-sub">For service at 7 PM</div>
+</div>
+
+<!-- MIC BAR -->
+<div id="mic-bar">
+  <button id="mic-btn" aria-label="Toggle microphone">
+    <svg id="mic-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="2" width="6" height="13" rx="3"/>
+      <path d="M5 10a7 7 0 0 0 14 0"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+      <line x1="9"  y1="21" x2="15" y2="21"/>
+    </svg>
+    <svg id="stop-icon" viewBox="0 0 24 24" fill="white" style="display:none">
+      <rect x="6" y="6" width="12" height="12" rx="2"/>
+    </svg>
+  </button>
+  <div id="mic-hint">TAP OR SAY 'HEY CHEFBOX'</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass }     from 'three/addons/postprocessing/OutputPass.js';
+
+// ─── Renderer ───────────────────────────────────────────────────────────────
+const canvas = document.getElementById('bg-canvas');
+const W = window.innerWidth, H = window.innerHeight;
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0E0F13);
+
+const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 1000);
+camera.position.z = 5;
+
+// ─── Starfield ──────────────────────────────────────────────────────────────
+const STAR_COUNT = 2800;
+const starPos   = new Float32Array(STAR_COUNT * 3);
+const starSizes = new Float32Array(STAR_COUNT);
+
+for (let i = 0; i < STAR_COUNT; i++) {
+  starPos[i*3]   = (Math.random() - 0.5) * 50;
+  starPos[i*3+1] = (Math.random() - 0.5) * 50;
+  starPos[i*3+2] = (Math.random() - 0.5) * 20 - 5;
+  starSizes[i]   = Math.random() * 1.8 + 0.3;
+}
+
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+starGeo.setAttribute('size',     new THREE.BufferAttribute(starSizes, 1));
+
+const starMat = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: `
+    attribute float size;
+    uniform float uTime;
+    varying float vT;
+    void main() {
+      vT = sin(uTime * 1.8 + position.x * 6.3 + position.y * 4.7) * 0.5 + 0.5;
+      gl_PointSize = size * (0.6 + vT * 0.4);
+      gl_Position  = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying float vT;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      if (d > 0.5) discard;
+      float a = (1.0 - d * 2.0) * (0.35 + vT * 0.65);
+      gl_FragColor = vec4(1.0, 1.0, 1.0, a);
+    }
+  `,
+  transparent: true,
+  depthWrite: false,
+});
+scene.add(new THREE.Points(starGeo, starMat));
+
+// ─── Nebula clouds ──────────────────────────────────────────────────────────
+function radialGradTex(stops, size = 256) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  stops.forEach(([t, col]) => g.addColorStop(t, col));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  return new THREE.CanvasTexture(c);
+}
+
+const nebulaDefs = [
+  { stops: [[0,'rgba(45,212,168,0.20)'],[0.45,'rgba(45,212,168,0.05)'],[1,'rgba(0,0,0,0)']], x:-2.6, y:1.3, z:-3,   s:4.5,  sp: 0.05  },
+  { stops: [[0,'rgba(124,107,255,0.16)'],[0.4,'rgba(124,107,255,0.04)'],[1,'rgba(0,0,0,0)']], x:2.9,  y:-1.0,z:-4,   s:5.2,  sp:-0.04  },
+  { stops: [[0,'rgba(56,115,255,0.13)'],[0.5,'rgba(56,115,255,0.03)'],[1,'rgba(0,0,0,0)']], x:0.4,  y:-2.3,z:-3.5, s:3.6,  sp: 0.032 },
+  { stops: [[0,'rgba(45,212,168,0.10)'],[0.5,'rgba(45,212,168,0.02)'],[1,'rgba(0,0,0,0)']], x:-1.2, y:2.6, z:-5,   s:6.1,  sp:-0.06  },
+  { stops: [[0,'rgba(180,80,255,0.10)'],[0.5,'rgba(180,80,255,0.02)'],[1,'rgba(0,0,0,0)']], x:3.2,  y:1.8, z:-4.5, s:4.0,  sp: 0.025 },
+];
+
+const nebulas = nebulaDefs.map(d => {
+  const mat     = new THREE.SpriteMaterial({ map: radialGradTex(d.stops), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  const sprite  = new THREE.Sprite(mat);
+  sprite.position.set(d.x, d.y, d.z);
+  sprite.scale.setScalar(d.s);
+  sprite.userData = { ox: d.x, oy: d.y, sp: d.sp };
+  scene.add(sprite);
+  return sprite;
+});
+
+// ─── Orb uniforms (shared across all layers) ────────────────────────────────
+const uTime        = { value: 0 };
+const uVoiceBright = { value: 0.0 };
+const uColor       = { value: new THREE.Color(0x2DD4A8) };
+
+function orbLayer(vert, frag, side = THREE.FrontSide) {
+  return new THREE.ShaderMaterial({
+    uniforms: { uTime, uVoiceBright, uColor },
+    vertexShader: vert,
+    fragmentShader: frag,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side,
+  });
+}
+
+const baseVert = `
+  varying vec3 vN;
+  void main() {
+    vN = normalize(normalMatrix * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+// Inner core — bright, tight fresnel
+const coreMat = orbLayer(baseVert, `
+  uniform float uTime;
+  uniform float uVoiceBright;
+  uniform vec3  uColor;
+  varying vec3  vN;
+  void main() {
+    float pulse    = sin(uTime * 1.5708) * 0.5 + 0.5;
+    float bright   = 0.75 + pulse * 0.25 + uVoiceBright * 0.55;
+    float fresnel  = pow(1.0 - abs(dot(vN, vec3(0,0,1))), 1.2);
+    gl_FragColor   = vec4(uColor * bright, fresnel * bright);
+  }
+`);
+
+// Medium halo — softer, wider
+const haloMat = orbLayer(baseVert, `
+  uniform float uTime;
+  uniform float uVoiceBright;
+  uniform vec3  uColor;
+  varying vec3  vN;
+  void main() {
+    float pulse   = sin(uTime * 1.5708) * 0.5 + 0.5;
+    float bright  = 0.22 + pulse * 0.12 + uVoiceBright * 0.28;
+    float fresnel = pow(1.0 - abs(dot(vN, vec3(0,0,1))), 2.8);
+    gl_FragColor  = vec4(uColor, fresnel * bright);
+  }
+`, THREE.BackSide);
+
+// Outer atmospheric bloom — very soft
+const atmMat = orbLayer(baseVert, `
+  uniform float uTime;
+  uniform float uVoiceBright;
+  uniform vec3  uColor;
+  varying vec3  vN;
+  void main() {
+    float pulse   = sin(uTime * 1.5708) * 0.5 + 0.5;
+    float bright  = 0.07 + pulse * 0.05 + uVoiceBright * 0.14;
+    float fresnel = pow(1.0 - abs(dot(vN, vec3(0,0,1))), 5.0);
+    gl_FragColor  = vec4(uColor, fresnel * bright);
+  }
+`, THREE.BackSide);
+
+const orbGroup = new THREE.Group();
+orbGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.36, 64, 64), coreMat));
+orbGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.62, 64, 64), haloMat));
+orbGroup.add(new THREE.Mesh(new THREE.SphereGeometry(1.05, 64, 64), atmMat));
+
+// Extra 2-D glow sprite at centre for the bloom pass to pick up
+const glowTex = radialGradTex([[0,'rgba(45,212,168,1)'],[0.25,'rgba(45,212,168,0.6)'],[0.6,'rgba(45,212,168,0.1)'],[1,'rgba(0,0,0,0)']], 128);
+const glowSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+glowSprite.scale.setScalar(1.8);
+orbGroup.add(glowSprite);
+
+scene.add(orbGroup);
+
+// ─── Post-processing: Bloom ──────────────────────────────────────────────────
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 1.4, 0.55, 0.65));
+composer.addPass(new OutputPass());
+
+// ─── Animation loop ──────────────────────────────────────────────────────────
+let elapsed = 0, last = 0;
+
+function animate(ts) {
+  requestAnimationFrame(animate);
+  const dt = Math.min((ts - last) / 1000, 0.05);
+  last     = ts;
+  elapsed += dt;
+
+  uTime.value        = elapsed;
+  uVoiceBright.value = _voiceBright;
+  starMat.uniforms.uTime.value = elapsed;
+
+  nebulas.forEach(s => {
+    s.position.x = s.userData.ox + Math.sin(elapsed * s.userData.sp + s.userData.ox) * 0.45;
+    s.position.y = s.userData.oy + Math.cos(elapsed * s.userData.sp + s.userData.oy) * 0.32;
+  });
+
+  orbGroup.rotation.y = Math.sin(elapsed * 0.18) * 0.04;
+
+  composer.render();
+}
+
+requestAnimationFrame(ts => { last = ts; animate(ts); });
+
+// ─── Resize ───────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  const w = innerWidth, h = innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  composer.setSize(w, h);
+});
+
+// ─── Mic button ───────────────────────────────────────────────────────────────
+const micBtn   = document.getElementById('mic-btn');
+const micIcon  = document.getElementById('mic-icon');
+const stopIcon = document.getElementById('stop-icon');
+const micHint  = document.getElementById('mic-hint');
+const statusDot = document.getElementById('status-dot');
+
+let _listening   = false;
+let _voiceBright = 0;
+let _resetTimer  = null;
+
+function setListening(on) {
+  _listening          = on;
+  _voiceBright        = on ? 1.0 : 0;
+  micBtn.classList.toggle('active', on);
+  micIcon.style.display  = on ? 'none'  : 'block';
+  stopIcon.style.display = on ? 'block' : 'none';
+  micHint.textContent    = on ? "LISTENING…" : "TAP OR SAY 'HEY CHEFBOX'";
+  statusDot.className    = on ? 'listening' : '';
+  window.dispatchEvent(new CustomEvent('trillion:mic-toggle', { detail: { listening: on } }));
+}
+
+micBtn.addEventListener('click', () => {
+  clearTimeout(_resetTimer);
+  if (_listening) {
+    setListening(false);
+    return;
+  }
+  setListening(true);
+
+  // Demo: auto-transition to processing then idle
+  _resetTimer = setTimeout(() => {
+    _voiceBright    = 0.6;
+    statusDot.className = 'processing';
+    micHint.textContent = "PROCESSING…";
+
+    _resetTimer = setTimeout(() => {
+      setListening(false);
+    }, 2000);
+  }, 3000);
+});
+
+// Expose for audio-amplitude wiring
+window.setVoiceBright = v => { _voiceBright = Math.max(0, Math.min(1, v)); };
+
+// ─── Activity panel toggle ────────────────────────────────────────────────────
+const panel    = document.getElementById('activity-panel');
+const toggleBtn = document.getElementById('panel-toggle');
+let panelOpen  = true;
+
+toggleBtn.addEventListener('click', () => {
+  panelOpen = !panelOpen;
+  panel.classList.toggle('collapsed', !panelOpen);
+  toggleBtn.querySelector('path').setAttribute('d',
+    panelOpen ? 'M9 18l6-6-6-6' : 'M15 18l-6-6 6-6'
+  );
+});
+</script>
+</body>
+</html>
