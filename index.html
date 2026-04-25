@@ -3,390 +3,423 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jarvis — Summit Brands Command</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Jarvis — Summit Brands</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#080A10;color:#fff;font-family:'Inter',sans-serif;overflow:hidden;height:100vh;width:100vw}
-#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1}
+html,body{height:100%;width:100%;overflow:hidden;background:#07090f;color:#fff;font-family:'Inter',sans-serif}
+
+/* scrollbars */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+
+/* canvas bg */
+#bg{position:fixed;inset:0;z-index:0}
+
+/* vars */
 :root{
-  --accent:#2DD4A8;--accent2:#7c6bff;--accent3:#f59e0b;
-  --bg:rgba(8,10,16,0.6);--bg2:rgba(255,255,255,0.04);
-  --blur:blur(20px);--border:rgba(255,255,255,0.07);
-  --panel-w:272px;--hdr:56px;
+  --g:#2DD4A8;--p:#7c6bff;--y:#f59e0b;--r:#fb7185;--b:#60a5fa;--teal:#34d399;--v:#a78bfa;
+  --border:rgba(255,255,255,.07);
+  --glass:rgba(10,13,22,.75);
+  --blur:blur(18px);
 }
-.glass{background:var(--bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--border)}
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:2px}
+/* ── LAYOUT ── */
+#app{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;overflow:hidden}
 
-/* ── HEADER ── */
-#header{position:fixed;top:0;left:0;right:0;height:var(--hdr);z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:rgba(8,10,16,.85);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-bottom:1px solid var(--border)}
-.wordmark{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.wm-logo{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#080A10}
-.wm-text{font-size:15px;font-weight:600;letter-spacing:-.02em}
-.wm-sub{font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-left:6px}
+/* header */
+#hdr{
+  flex:0 0 auto;
+  height:52px;min-height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;gap:12px;
+  background:rgba(7,9,15,.9);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:var(--blur);
+  -webkit-backdrop-filter:var(--blur);
+}
+.logo{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.logo-mark{width:30px;height:30px;background:var(--g);border-radius:8px;display:grid;place-items:center;font-size:15px;font-weight:800;color:#07090f;flex-shrink:0}
+.logo-name{font-size:14px;font-weight:700;letter-spacing:-.02em}
+.logo-sub{font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;margin-left:4px}
 
-/* chat bar */
-#chat-bar{flex:1;max-width:440px;margin:0 16px;display:flex;gap:8px;align-items:center}
-#chat-input{flex:1;padding:7px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:22px;color:#fff;font-size:12.5px;font-family:inherit;outline:none;transition:border-color .2s}
-#chat-input::placeholder{color:rgba(255,255,255,.25)}
-#chat-input:focus{border-color:rgba(45,212,168,.5);background:rgba(255,255,255,.08)}
-#chat-send{padding:7px 16px;background:var(--accent);border:none;border-radius:22px;color:#080A10;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .2s}
-#chat-send:hover{opacity:.85}
+/* chat input */
+#chat-wrap{flex:1;max-width:480px;display:flex;gap:8px}
+#chat-in{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:7px 16px;color:#fff;font-size:12.5px;font-family:inherit;outline:none}
+#chat-in:focus{border-color:rgba(45,212,168,.45);background:rgba(255,255,255,.09)}
+#chat-in::placeholder{color:rgba(255,255,255,.22)}
+#chat-go{padding:7px 18px;background:var(--g);border:none;border-radius:24px;color:#07090f;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+#chat-go:hover{opacity:.88}
 
-.hdr-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.icon-btn{width:34px;height:34px;border:none;background:rgba(255,255,255,.05);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:9px;color:rgba(255,255,255,.5);transition:all .2s;border:1px solid transparent}
-.icon-btn:hover{color:#fff;background:rgba(255,255,255,.1);border-color:var(--border)}
-.icon-btn svg{width:16px;height:16px}
-#status-pill{display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(255,255,255,.05);border-radius:20px;border:1px solid var(--border);font-size:11px;color:rgba(255,255,255,.5);cursor:default}
-#status-dot{width:8px;height:8px;border-radius:50%;background:#333;transition:all .3s;flex-shrink:0}
-#status-dot.listening{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1.2s infinite}
-#status-dot.processing{background:#7c6bff;box-shadow:0 0 8px #7c6bff;animation:pulse .8s infinite}
-#status-dot.speaking{background:#fbbf24;box-shadow:0 0 8px #fbbf24;animation:pulse 1s infinite}
-#status-dot.online{background:var(--accent)}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+/* hdr right */
+.hdr-r{display:flex;align-items:center;gap:8px;flex-shrink:0}
+#status-pill{display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;font-size:10.5px;color:rgba(255,255,255,.4);white-space:nowrap}
+#sdot{width:7px;height:7px;border-radius:50%;background:var(--g);flex-shrink:0}
+#sdot.listening{animation:blink 1s infinite}
+#sdot.processing{background:#7c6bff;animation:blink .7s infinite}
+#sdot.speaking{background:#fbbf24;animation:blink .9s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.ico-btn{width:32px;height:32px;border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:8px;cursor:pointer;display:grid;place-items:center;color:rgba(255,255,255,.4);transition:all .18s}
+.ico-btn:hover{color:#fff;background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.15)}
 
-/* ── BRAND TABS ── */
-#brand-tabs{position:fixed;top:var(--hdr);left:0;right:0;height:36px;z-index:90;display:flex;align-items:center;padding:0 18px;gap:4px;background:rgba(8,10,16,.7);backdrop-filter:var(--blur);border-bottom:1px solid var(--border)}
-.btab{padding:4px 14px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .2s;color:rgba(255,255,255,.4)}
-.btab:hover{color:rgba(255,255,255,.7)}
-.btab.active{background:rgba(45,212,168,.12);border-color:rgba(45,212,168,.3);color:var(--accent)}
-.brand-tab-divider{flex:1}
-#live-mrr{font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:5px}
-#live-mrr span{color:var(--accent);font-weight:600}
-.live-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+/* brand tabs */
+#tabs{
+  flex:0 0 auto;
+  height:34px;min-height:34px;
+  display:flex;align-items:center;gap:4px;
+  padding:0 16px;
+  background:rgba(7,9,15,.7);
+  border-bottom:1px solid var(--border);
+}
+.tab{padding:3px 13px;border-radius:16px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid transparent;color:rgba(255,255,255,.35);transition:all .18s}
+.tab:hover{color:rgba(255,255,255,.65)}
+.tab.on{background:rgba(45,212,168,.1);border-color:rgba(45,212,168,.25);color:var(--g)}
+.tabs-r{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.3)}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:blink 2s infinite;flex-shrink:0}
+#mrr-tab{font-weight:600;color:var(--g)}
 
-/* ── MAIN SCROLL AREA ── */
-#main{position:fixed;top:calc(var(--hdr) + 36px);left:var(--panel-w);right:var(--panel-w);bottom:130px;z-index:10;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+/* body row */
+#body{flex:1;display:flex;min-height:0;overflow:hidden}
 
-/* ── LEFT PANEL ── */
-#left{position:fixed;top:calc(var(--hdr) + 36px);left:0;width:var(--panel-w);bottom:0;z-index:20;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;border-right:1px solid var(--border)}
+/* panels */
+#left,#right{
+  flex:0 0 252px;
+  display:flex;flex-direction:column;
+  overflow-y:auto;
+  padding:10px;
+  gap:8px;
+  border-right:1px solid var(--border);
+}
+#right{border-right:none;border-left:1px solid var(--border)}
 
-/* ── RIGHT PANEL ── */
-#right{position:fixed;top:calc(var(--hdr) + 36px);right:0;width:var(--panel-w);bottom:0;z-index:20;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;border-left:1px solid var(--border)}
+/* center scroll */
+#center{
+  flex:1;
+  overflow-y:auto;
+  padding:12px;
+  display:flex;flex-direction:column;
+  gap:14px;
+}
 
-/* ── PANEL CARD ── */
-.pcard{border-radius:14px;padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);backdrop-filter:var(--blur)}
-.pcard-title{font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:600;color:rgba(255,255,255,.3);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
-.pcard-title span{color:var(--accent)}
+/* ── CARDS ── */
+.card{
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:12px 14px;
+}
+.card-hd{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.card-hd span{color:var(--g);font-size:10px}
 
-/* MRR card */
-.mrr-num{font-size:30px;font-weight:700;letter-spacing:-.04em;line-height:1}
-.mrr-target{font-size:11px;color:rgba(255,255,255,.3);margin-top:3px}
-.prog-track{width:100%;height:5px;background:rgba(255,255,255,.08);border-radius:3px;margin:10px 0 5px;overflow:hidden}
-.prog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),#7c6bff);transition:width 1.2s ease}
-.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
-.stat-box{background:rgba(255,255,255,.04);border-radius:9px;padding:8px;text-align:center}
-.stat-val{font-size:18px;font-weight:600}
-.stat-lbl{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px}
+/* MRR */
+.mrr-big{font-size:28px;font-weight:700;letter-spacing:-.04em;line-height:1}
+.mrr-sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:3px}
+.prog{width:100%;height:4px;background:rgba(255,255,255,.07);border-radius:2px;margin:10px 0 6px;overflow:hidden}
+.prog-f{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--g),var(--p));transition:width 1.2s ease}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.kpi{background:rgba(255,255,255,.04);border-radius:8px;padding:8px;text-align:center}
+.kpi-v{font-size:20px;font-weight:700}
+.kpi-l{font-size:10px;color:rgba(255,255,255,.32);margin-top:2px}
 
-/* members */
-.member-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.member-row:last-child{border-bottom:none}
-.member-name{font-size:12px;font-weight:500}
-.member-note{font-size:10px;color:rgba(255,255,255,.35)}
-.pill{padding:2px 7px;border-radius:10px;font-size:9px;font-weight:600;text-transform:uppercase}
-.pill.active{background:rgba(45,212,168,.15);color:var(--accent)}
-.pill.paused{background:rgba(251,191,36,.12);color:#fbbf24}
-.pill.ok{background:rgba(45,212,168,.1);color:var(--accent)}
-.pill.warn{background:rgba(251,191,36,.1);color:#fbbf24}
-.pill.err{background:rgba(255,71,87,.12);color:#ff4757}
+/* pipe rows */
+.pipe{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pipe-l{font-size:11px;color:rgba(255,255,255,.4);width:90px;flex-shrink:0}
+.pipe-t{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.pipe-f{height:100%;border-radius:3px;transition:width 1s ease}
+.pipe-v{font-size:11px;font-weight:600;width:26px;text-align:right;flex-shrink:0}
 
-/* cron rows */
-.cron-row{display:flex;align-items:flex-start;gap:7px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.cron-row:last-child{border-bottom:none}
-.cron-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.cron-name{font-size:11px;font-weight:500;line-height:1.3}
-.cron-sched{font-size:10px;color:rgba(255,255,255,.3)}
+/* rows */
+.row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.row:last-child{border-bottom:none}
+.row-name{font-size:12px;font-weight:500}
+.row-sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
+.pill{padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;text-transform:uppercase;flex-shrink:0}
+.pill-g{background:rgba(45,212,168,.12);color:var(--g)}
+.pill-y{background:rgba(245,158,11,.12);color:var(--y)}
+.pill-r{background:rgba(251,113,133,.12);color:var(--r)}
+.pill-p{background:rgba(124,107,255,.12);color:var(--p)}
 
-/* ── AGENT GRID ── */
-#agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.agent-card{border-radius:16px;padding:16px;background:rgba(255,255,255,.03);border:1px solid var(--border);transition:border-color .2s,background .2s;position:relative;overflow:hidden}
-.agent-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:16px 16px 0 0}
-.agent-card:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
-.agent-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.agent-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.agent-name{font-size:14px;font-weight:600}
-.agent-role{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.3}
-.agent-desc{font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;margin-bottom:12px}
-.agent-footer{display:flex;align-items:center;justify-content:space-between}
-.agent-crons{font-size:10px;color:rgba(255,255,255,.3)}
-.run-btn{padding:5px 12px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;border:none}
+/* section header */
+.sec{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:var(--border)}
 
-/* ── BOOKINGS / EVENTS TABLE ── */
-.data-table{width:100%;border-collapse:collapse}
-.data-table th{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);padding:4px 8px;text-align:left;border-bottom:1px solid var(--border)}
-.data-table td{font-size:11.5px;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
-.data-table tr:last-child td{border-bottom:none}
-.data-table tr:hover td{background:rgba(255,255,255,.02)}
+/* agent grid */
+#agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.ac{border-radius:14px;padding:14px;background:rgba(255,255,255,.025);border:1px solid var(--border);position:relative;overflow:hidden;transition:border-color .2s}
+.ac:hover{border-color:rgba(255,255,255,.12)}
+.ac-bar{position:absolute;top:0;left:0;right:0;height:2px}
+.ac-top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.ac-ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:17px;flex-shrink:0}
+.ac-n{font-size:13px;font-weight:700}
+.ac-r{font-size:10px;margin-top:2px}
+.ac-desc{font-size:11px;color:rgba(255,255,255,.45);line-height:1.5;margin-bottom:10px}
+.ac-foot{display:flex;align-items:center;justify-content:space-between}
+.ac-cron{font-size:10px;color:rgba(255,255,255,.28)}
+.run-btn{padding:5px 11px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:opacity .18s}
+.run-btn:hover{opacity:.8}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
 
-/* ── PIPELINE BARS ── */
-.pipe-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.pipe-label{font-size:11px;color:rgba(255,255,255,.5);width:110px;flex-shrink:0}
-.pipe-track{flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
-.pipe-fill{height:100%;border-radius:3px;transition:width 1s ease}
-.pipe-val{font-size:11px;font-weight:600;width:28px;text-align:right;flex-shrink:0}
+/* cron table */
+.cron-r{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.cron-r:last-child{border-bottom:none}
+.cron-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.cron-n{font-size:11px;font-weight:500}
+.cron-s{font-size:10px;color:rgba(255,255,255,.28);margin-top:1px}
 
-/* ── BLOG POSTS ── */
-.blog-brand{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.blog-brand:last-child{border-bottom:none}
-.blog-brand-name{font-size:12px;font-weight:500;display:flex;align-items:center;gap:7px}
-.bbdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.blog-count{font-size:18px;font-weight:700}
+/* bookings table */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;color:rgba(255,255,255,.28);padding:4px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.tbl td{font-size:11.5px;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.empty{text-align:center;padding:18px;color:rgba(255,255,255,.2);font-size:11px}
 
-/* ── VOICE / MIC ── */
-#voice-zone{position:fixed;bottom:0;left:0;right:0;height:128px;z-index:100;display:flex;align-items:center;justify-content:center;gap:20px;background:rgba(8,10,16,.9);backdrop-filter:var(--blur);border-top:1px solid var(--border)}
-#mic-wrap{position:relative;display:flex;align-items:center;justify-content:center}
-.mic-ring{position:absolute;width:80px;height:80px;border-radius:50%;border:2px solid var(--accent);opacity:0;transition:opacity .3s;animation:none}
-#mic-btn.active .mic-ring{opacity:.5;animation:ripple 1.5s ease-out infinite}
-@keyframes ripple{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.6);opacity:0}}
-#mic-btn{width:64px;height:64px;border-radius:50%;border:2px solid var(--border);background:rgba(45,212,168,.08);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;position:relative;z-index:1}
-#mic-btn:hover{background:rgba(45,212,168,.15);border-color:rgba(45,212,168,.5)}
-#mic-btn.active{background:rgba(45,212,168,.25);border-color:var(--accent);box-shadow:0 0 24px rgba(45,212,168,.3)}
-#mic-icon,#stop-icon{position:absolute;transition:opacity .2s}
-#stop-icon{display:none}
-.voice-info{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
-#mic-hint{font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.05em;text-transform:uppercase}
-#wake-hint{font-size:10px;color:rgba(255,255,255,.2)}
-.voice-tip{font-size:10px;color:rgba(255,255,255,.2);position:absolute;bottom:8px;right:16px}
+/* blog */
+.blog-r{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.blog-r:last-child{border-bottom:none}
+.blog-b{font-size:12px;font-weight:500;display:flex;align-items:center;gap:7px}
+.blog-cnt{font-size:20px;font-weight:700}
+
+/* activity */
+.act-e{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:10.5px;color:rgba(255,255,255,.5);line-height:1.4}
+.act-e:last-child{border-bottom:none}
+.act-t{color:rgba(255,255,255,.2);font-size:9px;display:block;margin-top:1px}
+
+/* links */
+.tf-link{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:9px;text-decoration:none;margin-bottom:5px}
+.tf-link:last-child{margin-bottom:0}
+
+/* ── VOICE ZONE ── */
+#voice-zone{
+  flex:0 0 auto;
+  height:96px;min-height:96px;
+  display:flex;align-items:center;justify-content:center;gap:22px;
+  background:rgba(7,9,15,.92);
+  border-top:1px solid var(--border);
+  backdrop-filter:var(--blur);
+  padding:0 20px;
+  position:relative;
+}
+.vc-info{display:flex;flex-direction:column;gap:3px}
+#vc-hint{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3)}
+#vc-sub{font-size:9.5px;color:rgba(255,255,255,.16)}
+.mic-wrap{position:relative;display:grid;place-items:center}
+.mic-ring{position:absolute;width:72px;height:72px;border-radius:50%;border:1.5px solid var(--g);opacity:0;pointer-events:none}
+#mic.active .mic-ring{animation:ripple 1.4s ease-out infinite;opacity:.5}
+@keyframes ripple{to{transform:scale(1.7);opacity:0}}
+#mic{
+  width:60px;height:60px;border-radius:50%;
+  background:rgba(45,212,168,.07);
+  border:1.5px solid rgba(45,212,168,.2);
+  cursor:pointer;display:grid;place-items:center;
+  transition:all .22s;z-index:1;
+}
+#mic:hover{background:rgba(45,212,168,.14);border-color:rgba(45,212,168,.45)}
+#mic.active{background:rgba(45,212,168,.2);border-color:var(--g);box-shadow:0 0 20px rgba(45,212,168,.25)}
+.vc-tip{position:absolute;right:14px;bottom:8px;font-size:9px;color:rgba(255,255,255,.15)}
 
 /* ── RESPONSE CARD ── */
-.resp-card{position:fixed;z-index:200;border-radius:16px;padding:16px 18px;background:rgba(20,22,30,.95);border:1px solid rgba(45,212,168,.25);backdrop-filter:blur(24px);box-shadow:0 8px 48px rgba(0,0,0,.6);animation:cardIn .3s cubic-bezier(.16,1,.3,1)}
-@keyframes cardIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-.card-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:5px}
-.card-lbl::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite}
-.card-val{font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.9)}
-.card-x{position:absolute;top:10px;right:10px;background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:16px;line-height:1;padding:2px 5px}
-.card-x:hover{color:#fff}
+.resp{
+  position:fixed;bottom:108px;left:50%;transform:translateX(-50%);
+  z-index:300;max-width:520px;width:90%;
+  background:rgba(14,17,27,.97);border:1px solid rgba(45,212,168,.25);
+  border-radius:16px;padding:16px 18px;
+  box-shadow:0 12px 48px rgba(0,0,0,.7);
+  animation:rIn .28s cubic-bezier(.16,1,.3,1);
+}
+@keyframes rIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.resp-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--g);margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.resp-lbl::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--g);animation:blink 1.5s infinite}
+.resp-txt{font-size:13px;line-height:1.65;color:rgba(255,255,255,.88)}
+.resp-x{position:absolute;top:10px;right:12px;background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:17px;padding:2px 5px}
+.resp-x:hover{color:#fff}
 
 /* ── SETTINGS MODAL ── */
-.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
-.modal-overlay.open{display:flex}
-.modal-box{background:#111318;border:1px solid var(--border);border-radius:20px;padding:24px;width:480px;max-width:90vw;max-height:90vh;overflow-y:auto}
-.modal-title{font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
-.modal-close{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:20px}
-.field-group{margin-bottom:14px}
-.field-group label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);margin-bottom:5px}
-.field-group input,.field-group textarea{width:100%;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;color:#fff;font-size:12.5px;font-family:inherit;outline:none;transition:border-color .2s}
-.field-group input:focus,.field-group textarea:focus{border-color:rgba(45,212,168,.5)}
-.field-group textarea{resize:vertical;min-height:80px}
-.modal-save{width:100%;padding:10px;background:var(--accent);border:none;border-radius:10px;color:#080A10;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
-
-/* ── SECTION HEADER ── */
-.sec-head{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.3);margin:4px 0 10px;display:flex;align-items:center;gap:8px}
-.sec-head::after{content:'';flex:1;height:1px;background:var(--border)}
-
-/* ── ACTIVITY FEED ── */
-.act-entry{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:10.5px;color:rgba(255,255,255,.5);line-height:1.4}
-.act-entry:last-child{border-bottom:none}
-.act-ts{color:rgba(255,255,255,.2);font-size:9.5px;display:block;margin-top:2px}
-
-/* ── EMPTY STATE ── */
-.empty{text-align:center;padding:20px;color:rgba(255,255,255,.2);font-size:12px}
+.modal{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center}
+.modal.on{display:flex}
+.modal-box{background:#0d1018;border:1px solid var(--border);border-radius:18px;padding:22px;width:460px;max-width:92vw;max-height:90vh;overflow-y:auto}
+.modal-hd{font-size:15px;font-weight:600;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
+.modal-cl{background:none;border:none;color:rgba(255,255,255,.35);cursor:pointer;font-size:19px}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.36);margin-bottom:5px}
+.fg input,.fg textarea{width:100%;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;color:#fff;font-size:12.5px;font-family:inherit;outline:none}
+.fg input:focus,.fg textarea:focus{border-color:rgba(45,212,168,.45)}
+.fg textarea{resize:vertical;min-height:70px}
+.modal-save{width:100%;padding:10px;background:var(--g);border:none;border-radius:10px;color:#07090f;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
 
 /* ── MOBILE ── */
-@media(max-width:900px){
-  :root{--panel-w:0px}
+@media(max-width:880px){
   #left,#right{display:none}
-  #main{left:0;right:0;bottom:140px}
   #agent-grid{grid-template-columns:1fr}
-  #chat-bar{max-width:240px}
-  .wm-sub{display:none}
 }
 @media(max-width:600px){
-  #chat-bar{max-width:180px}
-  .hdr-right{gap:4px}
+  #chat-wrap{max-width:200px}
+  .logo-sub,.logo-name{display:none}
 }
 </style>
-<script type="module" src="./main.js"></script>
 </head>
 <body>
-<canvas id="bg-canvas"></canvas>
+<canvas id="bg"></canvas>
 
-<!-- HEADER -->
-<header id="header">
-  <div class="wordmark">
-    <div class="wm-logo">J</div>
-    <div>
-      <div class="wm-text" data-agent-name>Jarvis</div>
+<div id="app">
+  <!-- HEADER -->
+  <header id="hdr">
+    <div class="logo">
+      <div class="logo-mark">J</div>
+      <div class="logo-name">Jarvis</div>
+      <div class="logo-sub">Summit Brands</div>
     </div>
-    <div class="wm-sub">Summit Brands</div>
-  </div>
-
-  <div id="chat-bar">
-    <input id="chat-input" type="text" placeholder="Ask Jarvis anything…" autocomplete="off">
-    <button id="chat-send">Send</button>
-  </div>
-
-  <div class="hdr-right">
-    <div id="status-pill">
-      <div id="status-dot" class="online"></div>
-      <span id="status-label">Ready</span>
+    <div id="chat-wrap">
+      <input id="chat-in" type="text" placeholder="Ask Jarvis anything…" autocomplete="off">
+      <button id="chat-go">Send</button>
     </div>
-    <button class="icon-btn" id="settings-btn" title="Settings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </button>
-  </div>
-</header>
+    <div class="hdr-r">
+      <div id="status-pill"><div id="sdot"></div><span id="slabel">Ready</span></div>
+      <button class="ico-btn" id="cfg-btn" title="Settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33A1.65 1.65 0 0 0 15 19.4V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
 
-<!-- BRAND TABS -->
-<div id="brand-tabs">
-  <button class="btab active" data-brand="all">All Brands</button>
-  <button class="btab" data-brand="chefbox">ChefBox Reserve</button>
-  <button class="btab" data-brand="aura">Aura</button>
-  <button class="btab" data-brand="sprig">Sprig & Fork</button>
-  <div class="brand-tab-divider"></div>
-  <div id="live-mrr"><div class="live-dot"></div>MRR <span id="mrr-hdr">—</span></div>
+  <!-- BRAND TABS -->
+  <div id="tabs">
+    <button class="tab on" data-b="all">All</button>
+    <button class="tab" data-b="chefbox">ChefBox</button>
+    <button class="tab" data-b="aura">Aura</button>
+    <button class="tab" data-b="sprig">Sprig & Fork</button>
+    <div class="tabs-r">
+      <div class="live-dot"></div>
+      MRR <span id="mrr-tab">loading…</span>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div id="body">
+    <!-- LEFT -->
+    <div id="left">
+      <!-- MRR -->
+      <div class="card">
+        <div class="card-hd">Revenue <span id="mrr-pct">—</span></div>
+        <div class="mrr-big" id="mrr-v">—</div>
+        <div class="mrr-sub">Target: $20,236 / mo</div>
+        <div class="prog"><div class="prog-f" id="mrr-bar" style="width:0%"></div></div>
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-v" id="k-active">—</div><div class="kpi-l">Active</div></div>
+          <div class="kpi"><div class="kpi-v" id="k-paused">—</div><div class="kpi-l">Paused</div></div>
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div class="card">
+        <div class="card-hd">HubSpot Pipeline</div>
+        <div class="pipe"><div class="pipe-l">Total</div><div class="pipe-t"><div class="pipe-f" style="width:100%;background:var(--p)"></div></div><div class="pipe-v" id="pv-t">78</div></div>
+        <div class="pipe"><div class="pipe-l">Attempted</div><div class="pipe-t"><div class="pipe-f" id="pf-a" style="width:96%;background:var(--y)"></div></div><div class="pipe-v" id="pv-a">75</div></div>
+        <div class="pipe"><div class="pipe-l">Connected</div><div class="pipe-t"><div class="pipe-f" id="pf-c" style="width:3%;background:var(--teal)"></div></div><div class="pipe-v" id="pv-c">2</div></div>
+        <div class="pipe"><div class="pipe-l">Open Deals</div><div class="pipe-t"><div class="pipe-f" id="pf-d" style="width:2%;background:var(--g)"></div></div><div class="pipe-v" id="pv-d">1</div></div>
+      </div>
+
+      <!-- Blog -->
+      <div class="card">
+        <div class="card-hd">SEO Posts Live</div>
+        <div class="blog-r"><div class="blog-b"><div style="width:7px;height:7px;border-radius:50%;background:var(--g)"></div>ChefBox</div><div class="blog-cnt" id="bl-cb">3</div></div>
+        <div class="blog-r"><div class="blog-b"><div style="width:7px;height:7px;border-radius:50%;background:var(--r)"></div>Aura</div><div class="blog-cnt" id="bl-au">3</div></div>
+        <div class="blog-r"><div class="blog-b"><div style="width:7px;height:7px;border-radius:50%;background:var(--y)"></div>Sprig</div><div class="blog-cnt" id="bl-sp">3</div></div>
+      </div>
+    </div>
+
+    <!-- CENTER -->
+    <div id="center">
+      <!-- Agents -->
+      <div class="sec">Agents</div>
+      <div id="agent-grid"></div>
+
+      <!-- Live Bookings -->
+      <div class="sec">Live Bookings</div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr><th>Client</th><th>Date</th><th>Amount</th><th>Brand</th><th>Status</th></tr></thead>
+          <tbody id="bk-body"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Members -->
+      <div class="sec">ChefBox Members (9)</div>
+      <div class="card" id="members-card"></div>
+
+      <!-- Crons -->
+      <div class="sec">Cron Schedule (21 jobs)</div>
+      <div class="card" id="cron-card"></div>
+    </div>
+
+    <!-- RIGHT -->
+    <div id="right">
+      <!-- Activity -->
+      <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;max-height:280px">
+        <div class="card-hd">Activity <span id="act-cnt">0</span></div>
+        <div id="act-feed" style="overflow-y:auto;flex:1"></div>
+      </div>
+
+      <!-- Events -->
+      <div class="card">
+        <div class="card-hd">Upcoming Events</div>
+        <div id="evt-list"><div class="empty">Loading…</div></div>
+      </div>
+
+      <!-- Typeforms -->
+      <div class="card">
+        <div class="card-hd">Typeform CTAs</div>
+        <a class="tf-link" href="https://form.typeform.com/to/X7RBmMLP" target="_blank" style="background:rgba(45,212,168,.06);border:1px solid rgba(45,212,168,.14)">
+          <span style="font-size:11.5px;font-weight:500">ChefBox</span><span style="font-size:10px;color:var(--g)">→</span>
+        </a>
+        <a class="tf-link" href="https://form.typeform.com/to/Ox7kHoMF" target="_blank" style="background:rgba(251,113,133,.06);border:1px solid rgba(251,113,133,.14)">
+          <span style="font-size:11.5px;font-weight:500">Aura</span><span style="font-size:10px;color:var(--r)">→</span>
+        </a>
+        <a class="tf-link" href="https://form.typeform.com/to/Z51CKPsy" target="_blank" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.14)">
+          <span style="font-size:11.5px;font-weight:500">Sprig & Fork</span><span style="font-size:10px;color:var(--y)">→</span>
+        </a>
+      </div>
+
+      <!-- GBP -->
+      <div class="card">
+        <div class="card-hd">Review Links</div>
+        <a href="https://g.page/r/CUe68am5A-UuEBM/review" target="_blank" style="display:block;font-size:11px;color:var(--g);text-decoration:none;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)">⭐ ChefBox →</a>
+        <a href="https://g.page/r/CXDUqvyFSRdnEBM/review" target="_blank" style="display:block;font-size:11px;color:var(--g);text-decoration:none;padding:5px 0">⭐ personalchefnashville.com →</a>
+        <div style="font-size:9.5px;color:rgba(255,255,255,.2);margin-top:6px">Aura GBP: create at business.google.com</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOICE ZONE -->
+  <div id="voice-zone">
+    <div class="vc-info">
+      <div id="vc-hint">Say "Hey Jarvis" or press Space</div>
+      <div id="vc-sub">Voice → Tunnel → OpenClaw</div>
+    </div>
+    <div class="mic-wrap">
+      <div class="mic-ring"></div>
+      <button id="mic" title="Push to talk (Space)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--g)" stroke-width="1.8"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>
+      </button>
+    </div>
+    <div class="vc-tip">⌨ Space = push to talk</div>
+  </div>
 </div>
 
-<!-- LEFT PANEL -->
-<div id="left">
-  <!-- MRR Card -->
-  <div class="pcard">
-    <div class="pcard-title">Revenue <span id="mrr-loading">loading…</span></div>
-    <div class="mrr-num" id="mrr-val">—</div>
-    <div class="mrr-target">Target: $20,236 / mo</div>
-    <div class="prog-track"><div class="prog-fill" id="mrr-prog" style="width:0%"></div></div>
-    <div class="stat-grid">
-      <div class="stat-box"><div class="stat-val" id="stat-active">—</div><div class="stat-lbl">Active</div></div>
-      <div class="stat-box"><div class="stat-val" id="stat-paused">—</div><div class="stat-lbl">Paused</div></div>
-    </div>
-  </div>
-
-  <!-- Pipeline -->
-  <div class="pcard">
-    <div class="pcard-title">HubSpot Pipeline</div>
-    <div id="pipeline-content">
-      <div class="pipe-row"><div class="pipe-label">Total Leads</div><div class="pipe-track"><div class="pipe-fill" id="pp-total" style="width:100%;background:#7c6bff"></div></div><div class="pipe-val" id="pv-total">—</div></div>
-      <div class="pipe-row"><div class="pipe-label">Attempted</div><div class="pipe-track"><div class="pipe-fill" id="pp-att" style="width:0%;background:#f59e0b"></div></div><div class="pipe-val" id="pv-att">—</div></div>
-      <div class="pipe-row"><div class="pipe-label">Connected</div><div class="pipe-track"><div class="pipe-fill" id="pp-conn" style="width:0%;background:#34d399"></div></div><div class="pipe-val" id="pv-conn">—</div></div>
-      <div class="pipe-row"><div class="pipe-label">Open Deals</div><div class="pipe-track"><div class="pipe-fill" id="pp-deal" style="width:0%;background:var(--accent)"></div></div><div class="pipe-val" id="pv-deal">—</div></div>
-    </div>
-  </div>
-
-  <!-- Blog/SEO -->
-  <div class="pcard">
-    <div class="pcard-title">SEO Blog Posts</div>
-    <div id="blog-content">
-      <div class="blog-brand"><div class="blog-brand-name"><div class="bbdot" style="background:#2DD4A8"></div>ChefBox</div><div class="blog-count" id="blog-cb">—</div></div>
-      <div class="blog-brand"><div class="blog-brand-name"><div class="bbdot" style="background:#fb7185"></div>Aura</div><div class="blog-count" id="blog-au">—</div></div>
-      <div class="blog-brand"><div class="blog-brand-name"><div class="bbdot" style="background:#f59e0b"></div>Sprig & Fork</div><div class="blog-count" id="blog-sp">—</div></div>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN CENTER SCROLL -->
-<div id="main">
-  <!-- Agents -->
-  <div class="sec-head">Agents</div>
-  <div id="agent-grid"></div>
-
-  <!-- Bookings -->
-  <div class="sec-head" id="bookings-head">Live Bookings</div>
-  <div class="pcard">
-    <div id="bookings-wrap">
-      <table class="data-table">
-        <thead><tr><th>Client</th><th>Date</th><th>Amount</th><th>Brand</th><th>Status</th></tr></thead>
-        <tbody id="bookings-body"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Members -->
-  <div class="sec-head">ChefBox Members</div>
-  <div class="pcard" id="members-card">
-    <div id="members-wrap"><div class="empty">Loading…</div></div>
-  </div>
-
-  <!-- Cron Schedule -->
-  <div class="sec-head">Cron Schedule</div>
-  <div class="pcard">
-    <div id="cron-wrap"></div>
-  </div>
-</div>
-
-<!-- RIGHT PANEL -->
-<div id="right">
-  <!-- Activity Feed -->
-  <div class="pcard" style="flex:1;min-height:0;display:flex;flex-direction:column">
-    <div class="pcard-title">Activity Feed <span id="act-count">0</span></div>
-    <div id="activity-feed" style="flex:1;overflow-y:auto"></div>
-  </div>
-
-  <!-- Aura Events -->
-  <div class="pcard">
-    <div class="pcard-title">Upcoming Events</div>
-    <div id="aura-events"><div class="empty">Loading…</div></div>
-  </div>
-
-  <!-- Referral Links -->
-  <div class="pcard">
-    <div class="pcard-title">Typeform CTAs</div>
-    <div style="display:flex;flex-direction:column;gap:7px">
-      <a href="https://form.typeform.com/to/X7RBmMLP" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:rgba(45,212,168,.06);border-radius:8px;border:1px solid rgba(45,212,168,.15);text-decoration:none">
-        <span style="font-size:11.5px;font-weight:500;color:#fff">ChefBox</span>
-        <span style="font-size:10px;color:var(--accent)">→ Form</span>
-      </a>
-      <a href="https://form.typeform.com/to/Ox7kHoMF" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:rgba(251,113,133,.06);border-radius:8px;border:1px solid rgba(251,113,133,.15);text-decoration:none">
-        <span style="font-size:11.5px;font-weight:500;color:#fff">Aura</span>
-        <span style="font-size:10px;color:#fb7185">→ Form</span>
-      </a>
-      <a href="https://form.typeform.com/to/Z51CKPsy" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:rgba(245,158,11,.06);border-radius:8px;border:1px solid rgba(245,158,11,.15);text-decoration:none">
-        <span style="font-size:11.5px;font-weight:500;color:#fff">Sprig & Fork</span>
-        <span style="font-size:10px;color:#f59e0b">→ Form</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- GBP Review Links -->
-  <div class="pcard">
-    <div class="pcard-title">Review Links</div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <a href="https://g.page/r/CUe68am5A-UuEBM/review" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;padding:5px 0;display:block">⭐ ChefBox GBP Review →</a>
-      <a href="https://g.page/r/CXDUqvyFSRdnEBM/review" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;padding:5px 0;display:block">⭐ personalchefnashville.com →</a>
-      <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:4px">Aura GBP: create at business.google.com<br>Sprig GBP: verify ownership</div>
-    </div>
-  </div>
-</div>
-
-<!-- VOICE ZONE -->
-<div id="voice-zone">
-  <div class="voice-info">
-    <div id="mic-hint">SAY "HEY JARVIS" OR PRESS SPACE</div>
-    <div id="wake-hint">Voice relay → Cloudflare tunnel → OpenClaw</div>
-  </div>
-  <div id="mic-wrap">
-    <div class="mic-ring"></div>
-    <button id="mic-btn" title="Push to talk (Space)">
-      <svg id="mic-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>
-      <svg id="stop-icon" width="26" height="26" viewBox="0 0 24 24" fill="var(--accent)" style="display:none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-    </button>
-  </div>
-  <div class="voice-tip">⌨ Space = push to talk</div>
-</div>
+<!-- RESPONSE CARD (injected by JS) -->
 
 <!-- SETTINGS MODAL -->
-<div id="settings-modal" class="modal-overlay">
+<div id="cfg-modal" class="modal">
   <div class="modal-box">
-    <div class="modal-title">
-      Settings
-      <button class="modal-close" id="settings-close">✕</button>
-    </div>
-    <div class="field-group"><label>Mission Control / Tunnel URL</label><input id="s-mc" type="url" placeholder="https://...cfargotunnel.com"></div>
-    <div class="field-group"><label>OpenClaw Gateway URL</label><input id="s-oc" type="url" placeholder="https://..."></div>
-    <div class="field-group"><label>Agent Name</label><input id="s-name" type="text" placeholder="Jarvis"></div>
-    <div class="field-group"><label>Fallback AI API URL</label><input id="s-url" type="url" placeholder="https://api.openai.com/v1/chat/completions"></div>
-    <div class="field-group"><label>Fallback API Key (sk-...)</label><input id="s-key" type="password" placeholder="sk-..."></div>
-    <div class="field-group"><label>Model</label><input id="s-model" type="text" placeholder="gpt-4o"></div>
-    <div class="field-group"><label>System Prompt</label><textarea id="s-prompt"></textarea></div>
-    <button class="modal-save" id="settings-save">Save Settings</button>
+    <div class="modal-hd">Settings <button class="modal-cl" id="cfg-x">✕</button></div>
+    <div class="fg"><label>OpenClaw Tunnel URL (for voice)</label><input id="s-oc" type="url" placeholder="https://be408b7e-….cfargotunnel.com"></div>
+    <div class="fg"><label>Fallback AI URL</label><input id="s-url" type="url" placeholder="https://api.openai.com/v1/chat/completions"></div>
+    <div class="fg"><label>Fallback API Key</label><input id="s-key" type="password" placeholder="sk-…"></div>
+    <div class="fg"><label>Model</label><input id="s-model" type="text" placeholder="gpt-4o"></div>
+    <div class="fg"><label>System Prompt</label><textarea id="s-prompt"></textarea></div>
+    <button class="modal-save" id="cfg-save">Save</button>
   </div>
 </div>
 
+<script type="module" src="./main.js"></script>
 </body>
 </html>
