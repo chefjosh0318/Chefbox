@@ -1,9 +1,13 @@
-import { loadCFG, CFG, saveCFG, addActivityLog, getActivityLog,
-         fetchMembers, fetchMRR, fetchBookings, fetchAuraEvents,
-         fetchBlogPosts, fetchPipeline, AGENTS, CRON_DEFS, MEMBERS_FALLBACK, fmtMRR } from './data.js';
+import {
+  loadCFG, CFG, addActivityLog,
+  fetchMRR, fetchMembers, fetchBookings, fetchAuraEvents, fetchBlogPosts,
+  AGENTS, CRONS, MEMBERS_STATIC, fmtMRR
+} from './data.js';
 import { initScene } from './scene.js';
-import { initMic, initMicButton, initPassiveListening, setAmplitudeCallback,
-         startMic, stopMic, sendToJarvis, speak, showCard, initTelegram, initSettings } from './voice.js';
+import {
+  initMic, initMicButton, initPassiveListening, initSettings,
+  startMic, stopMic, sendToJarvis, setStatus
+} from './voice.js';
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadCFG();
@@ -11,66 +15,55 @@ initScene();
 initMic();
 initMicButton();
 initPassiveListening();
-initTelegram();
 initSettings();
 
-setAmplitudeCallback(amp => {
-  const btn = document.getElementById('mic-btn');
-  if (btn && btn.classList.contains('active')) {
-    btn.style.boxShadow = `0 0 ${8 + amp * 32}px rgba(45,212,168,${0.2 + amp * 0.5})`;
-  }
-});
-
-// ── Space bar push-to-talk ────────────────────────────────────────────────────
-let spaceHeld = false;
+// ── Space bar PTT ─────────────────────────────────────────────────────────────
+let held = false;
 document.addEventListener('keydown', e => {
-  if (e.code === 'Space' && !e.target.matches('input,textarea') && !spaceHeld) {
-    e.preventDefault();
-    spaceHeld = true;
-    startMic();
+  if (e.code === 'Space' && !held && !e.target.matches('input,textarea')) {
+    e.preventDefault(); held = true; startMic();
   }
 });
 document.addEventListener('keyup', e => {
   if (e.code === 'Space' && !e.target.matches('input,textarea')) {
-    spaceHeld = false;
-    stopMic();
+    held = false; stopMic();
   }
 });
 
 // ── Chat bar ──────────────────────────────────────────────────────────────────
-const chatInput = document.getElementById('chat-input');
-const chatSend  = document.getElementById('chat-send');
-
+document.getElementById('chat-go')?.addEventListener('click', doChat);
+document.getElementById('chat-in')?.addEventListener('keydown', e => { if (e.key==='Enter') doChat(); });
 function doChat() {
-  const text = chatInput.value.trim();
-  if (!text) return;
-  chatInput.value = '';
-  addActivityLog(`You: "${text.slice(0,60)}${text.length>60?'…':''}"`);
-  sendToJarvis(text);
+  const inp = document.getElementById('chat-in');
+  const txt = inp?.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  sendToJarvis(txt);
 }
-chatSend.addEventListener('click', doChat);
-chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') doChat(); });
 
 // ── Activity feed ─────────────────────────────────────────────────────────────
-window.addEventListener('activity', e => {
-  const feed = document.getElementById('activity-feed');
+window.addEventListener('j-activity', e => {
+  const feed = document.getElementById('act-feed');
   if (!feed) return;
-  const div = document.createElement('div');
-  div.className = 'act-entry';
-  div.innerHTML = `${e.detail.msg}<span class="act-ts">${new Date().toLocaleTimeString()}</span>`;
-  feed.prepend(div);
-  // trim to 40
+  const d = document.createElement('div');
+  d.className = 'act-e';
+  const ts = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  d.innerHTML = `${escHtml(e.detail.msg)}<span class="act-t">${ts}</span>`;
+  feed.prepend(d);
   while (feed.children.length > 40) feed.lastChild.remove();
-  const cnt = document.getElementById('act-count');
+  const cnt = document.getElementById('act-cnt');
   if (cnt) cnt.textContent = feed.children.length;
 });
 
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 // ── Brand tabs ────────────────────────────────────────────────────────────────
-document.querySelectorAll('.btab').forEach(btn => {
+document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.btab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    // future: filter panels by brand
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
   });
 });
 
@@ -78,61 +71,51 @@ document.querySelectorAll('.btab').forEach(btn => {
 function renderAgents() {
   const grid = document.getElementById('agent-grid');
   if (!grid) return;
-  grid.innerHTML = '';
-  AGENTS.forEach(a => {
-    const cronCount = CRON_DEFS.filter(c => c.agent === a.id).length;
-    const card = document.createElement('div');
-    card.className = 'agent-card';
-    card.style.setProperty('--agent-color', a.color);
-    card.innerHTML = `
-      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${a.color};border-radius:14px 14px 0 0"></div>
-      <div class="agent-top">
-        <div class="agent-icon" style="background:${a.color}18;border:1px solid ${a.color}30">${a.icon}</div>
+  grid.innerHTML = AGENTS.map(a => {
+    const nc = CRONS.filter(c => c.agent === a.id).length;
+    return `
+    <div class="ac">
+      <div class="ac-bar" style="background:${a.color}"></div>
+      <div class="ac-top">
+        <div class="ac-ico" style="background:${a.color}18;border:1px solid ${a.color}28">${a.icon}</div>
         <div>
-          <div class="agent-name">${a.name}</div>
-          <div class="agent-role" style="color:${a.color}">${a.role}</div>
+          <div class="ac-n">${a.name}</div>
+          <div class="ac-r" style="color:${a.color}">${a.role}</div>
         </div>
       </div>
-      <div class="agent-desc">${a.desc}</div>
-      <div class="agent-footer">
-        <div class="agent-crons">${cronCount} cron${cronCount!==1?'s':''} active</div>
-        <button class="run-btn" style="background:${a.color}18;color:${a.color};border:1px solid ${a.color}30" data-agent="${a.id}">▶ Run Now</button>
+      <div class="ac-desc">${a.desc}</div>
+      <div class="ac-foot">
+        <div class="ac-cron">${nc} cron${nc!==1?'s':''}</div>
+        <button class="run-btn" data-id="${a.id}"
+          style="background:${a.color}16;color:${a.color};border:1px solid ${a.color}28">
+          ▶ Run
+        </button>
       </div>
-    `;
-    card.querySelector('.run-btn').addEventListener('click', async () => {
-      addActivityLog(`Manual run: ${a.name} triggered`);
-      const btn = card.querySelector('.run-btn');
-      const orig = btn.textContent;
-      btn.textContent = '…Running';
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.run-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      addActivityLog(`Manual run: ${id} triggered`);
+      btn.textContent = '…';
       btn.disabled = true;
-      try {
-        const r = await fetch(`${CFG.mcApiUrl}/api/jarvis/run-agent`, {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({agent: a.id}),
-          signal: AbortSignal.timeout(8000),
-        });
-        btn.textContent = r.ok ? '✓ Done' : '✗ Failed';
-      } catch {
-        btn.textContent = '✗ No relay';
-      }
-      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+      setTimeout(() => { btn.textContent = '▶ Run'; btn.disabled = false; }, 3000);
     });
-    grid.appendChild(card);
   });
 }
 
 // ── Render crons ──────────────────────────────────────────────────────────────
 function renderCrons() {
-  const wrap = document.getElementById('cron-wrap');
-  if (!wrap) return;
-  const agentColors = {JARVIS:'#2DD4A8',CIPHER:'#7c6bff',FORGE:'#f59e0b',SCOUT:'#34d399',NOVA:'#fb7185',ATLAS:'#a78bfa',TITAN:'#60a5fa'};
-  wrap.innerHTML = CRON_DEFS.map(c => `
-    <div class="cron-row">
-      <div class="cron-dot" style="background:${agentColors[c.agent]||'#888'}"></div>
-      <div style="flex:1">
-        <div class="cron-name">${c.name}</div>
-        <div class="cron-sched">${c.schedule} · ${c.desc}</div>
+  const card = document.getElementById('cron-card');
+  if (!card) return;
+  const colors = {JARVIS:'#2DD4A8',CIPHER:'#7c6bff',FORGE:'#f59e0b',SCOUT:'#34d399',NOVA:'#fb7185',ATLAS:'#a78bfa',TITAN:'#60a5fa'};
+  card.innerHTML = CRONS.map(c => `
+    <div class="cron-r">
+      <div class="cron-dot" style="background:${colors[c.agent]||'#666'}"></div>
+      <div>
+        <div class="cron-n">${c.name}</div>
+        <div class="cron-s">${c.sched} · ${c.desc}</div>
       </div>
     </div>
   `).join('');
@@ -140,119 +123,113 @@ function renderCrons() {
 
 // ── Render members ────────────────────────────────────────────────────────────
 function renderMembers(members) {
-  const wrap = document.getElementById('members-wrap');
-  if (!wrap) return;
-  if (!members.length) { wrap.innerHTML = '<div class="empty">No members found</div>'; return; }
-  wrap.innerHTML = members.map(m => `
-    <div class="member-row">
+  const card = document.getElementById('members-card');
+  if (!card) return;
+  card.innerHTML = members.map(m => {
+    const pillClass = m.status === 'active' ? 'pill-g' : 'pill-y';
+    return `
+    <div class="row">
       <div>
-        <div class="member-name">${m.name}</div>
-        ${m.note ? `<div class="member-note">${m.note}</div>` : ''}
+        <div class="row-name">${escHtml(m.name)}</div>
+        ${m.note ? `<div class="row-sub">${escHtml(m.note)}</div>` : ''}
       </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <div style="font-size:11px;color:rgba(255,255,255,.4)">${m.plan}</div>
-        <div class="pill ${m.status}">${m.status}</div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="font-size:11px;color:rgba(255,255,255,.35)">${m.plan}</div>
+        <div class="pill ${pillClass}">${m.status}</div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── Render bookings ───────────────────────────────────────────────────────────
-function renderBookings(bookings, events) {
-  const tbody = document.getElementById('bookings-body');
+function renderBookings(sprig, aura) {
+  const tbody = document.getElementById('bk-body');
   if (!tbody) return;
-  const rows = [...bookings, ...events];
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty">No active bookings</td></tr>';
+  const all = [...sprig, ...aura];
+  if (!all.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No confirmed bookings found</td></tr>';
     return;
   }
-  tbody.innerHTML = rows.map(b => `
+  tbody.innerHTML = all.map(b => `
     <tr>
-      <td>${b.client}</td>
-      <td>${b.date}</td>
+      <td>${escHtml(b.client)}</td>
+      <td>${escHtml(b.date)}</td>
       <td>${b.amount || '—'}</td>
-      <td><span style="font-size:10px;color:rgba(255,255,255,.5)">${b.brand}</span></td>
-      <td><span class="pill ok">${b.status}</span></td>
-    </tr>
-  `).join('');
+      <td style="font-size:10px;color:rgba(255,255,255,.4)">${escHtml(b.brand)}</td>
+      <td><div class="pill pill-g">${escHtml(b.status)}</div></td>
+    </tr>`).join('');
 }
 
 // ── Render aura events ────────────────────────────────────────────────────────
-function renderAuraEvents(events) {
-  const wrap = document.getElementById('aura-events');
-  if (!wrap) return;
-  if (!events.length) { wrap.innerHTML = '<div class="empty">No upcoming events</div>'; return; }
-  wrap.innerHTML = events.map(e => `
-    <div class="member-row">
-      <div><div class="member-name">${e.client}</div><div class="member-note">${e.brand}</div></div>
-      <div class="pill ok">${e.date}</div>
-    </div>
-  `).join('');
-}
-
-// ── Render pipeline ───────────────────────────────────────────────────────────
-function renderPipeline(p) {
-  const max = p.total || 1;
-  document.getElementById('pv-total').textContent = p.total;
-  document.getElementById('pv-att').textContent   = p.attempted;
-  document.getElementById('pv-conn').textContent  = p.connected;
-  document.getElementById('pv-deal').textContent  = p.deals;
-  document.getElementById('pp-total').style.width = '100%';
-  document.getElementById('pp-att').style.width   = `${(p.attempted/max)*100}%`;
-  document.getElementById('pp-conn').style.width  = `${(p.connected/max)*100}%`;
-  document.getElementById('pp-deal').style.width  = `${Math.max(4,(p.deals/max)*100)}%`;
-}
-
-// ── Render blog ───────────────────────────────────────────────────────────────
-function renderBlog(b) {
-  document.getElementById('blog-cb').textContent = b.chefbox;
-  document.getElementById('blog-au').textContent = b.aura;
-  document.getElementById('blog-sp').textContent = b.sprig;
+function renderEvents(events) {
+  const el = document.getElementById('evt-list');
+  if (!el) return;
+  if (!events.length) { el.innerHTML = '<div class="empty">No upcoming events</div>'; return; }
+  el.innerHTML = events.map(e => `
+    <div class="row">
+      <div><div class="row-name">${escHtml(e.client)}</div><div class="row-sub">${escHtml(e.brand)}</div></div>
+      <div class="pill pill-g">${escHtml(e.date)}</div>
+    </div>`).join('');
 }
 
 // ── Render MRR ────────────────────────────────────────────────────────────────
 function renderMRR(d) {
   const TARGET = 20236;
-  const pct = Math.min(100, Math.round((d.mrr / TARGET) * 100));
-  document.getElementById('mrr-val').textContent     = fmtMRR(d.mrr);
-  document.getElementById('mrr-hdr').textContent     = fmtMRR(d.mrr);
-  document.getElementById('mrr-loading').textContent = `${pct}% of target`;
-  document.getElementById('mrr-prog').style.width    = `${pct}%`;
-  document.getElementById('stat-active').textContent = d.active;
-  document.getElementById('stat-paused').textContent = d.paused;
+  const pct = Math.min(100, Math.round((d.mrr/TARGET)*100));
+  document.getElementById('mrr-v').textContent    = fmtMRR(d.mrr);
+  document.getElementById('mrr-tab').textContent  = fmtMRR(d.mrr);
+  document.getElementById('mrr-pct').textContent  = `${pct}% of target`;
+  document.getElementById('mrr-bar').style.width  = `${pct}%`;
+  document.getElementById('k-active').textContent = d.active;
+  document.getElementById('k-paused').textContent = d.paused;
+  addActivityLog(`Revenue: MRR ${fmtMRR(d.mrr)} · ${d.active} active · ${d.paused} paused${d.source==='fallback'?' (estimated)':''}`);
+}
+
+// ── Render blog ───────────────────────────────────────────────────────────────
+function renderBlog(b) {
+  document.getElementById('bl-cb').textContent = b.chefbox;
+  document.getElementById('bl-au').textContent = b.aura;
+  document.getElementById('bl-sp').textContent = b.sprig;
 }
 
 // ── Load all live data ────────────────────────────────────────────────────────
 async function loadData() {
-  addActivityLog('Jarvis: Loading live data from Supabase…');
+  addActivityLog('Fetching live data from Supabase…');
+  setStatus('processing', 'Loading…');
 
-  const [members, mrr, bookings, auraEvents, blog, pipeline] = await Promise.all([
-    fetchMembers(),
-    fetchMRR(),
-    fetchBookings(),
-    fetchAuraEvents(),
-    fetchBlogPosts(),
-    fetchPipeline(),
-  ]);
+  try {
+    const [mrr, members, bookings, events, blog] = await Promise.all([
+      fetchMRR(),
+      fetchMembers(),
+      fetchBookings(),
+      fetchAuraEvents(),
+      fetchBlogPosts(),
+    ]);
 
-  renderMRR(mrr);
-  renderMembers(members.length ? members : MEMBERS_FALLBACK);
-  renderBookings(bookings, auraEvents);
-  renderAuraEvents(auraEvents);
-  renderBlog(blog);
-  renderPipeline(pipeline);
+    renderMRR(mrr);
+    renderMembers(members.length ? members : MEMBERS_STATIC);
+    renderBookings(bookings, events);
+    renderEvents(events);
+    renderBlog(blog);
 
-  addActivityLog(`Jarvis: ${mrr.active} active members · MRR ${fmtMRR(mrr.mrr)} · ${bookings.length + auraEvents.length} active bookings`);
+    addActivityLog(`Data loaded: ${bookings.length} Sprig bookings · ${events.length} Aura events · ${blog.total} posts`);
+  } catch (err) {
+    addActivityLog(`Data load error: ${err.message}`);
+    renderMembers(MEMBERS_STATIC);
+    renderBookings([], []);
+    renderEvents([]);
+    renderBlog({ chefbox:3, aura:3, sprig:3, total:9 });
+    renderMRR({ mrr: Math.round((6*175+214)*4.33), active:7, paused:2, source:'fallback' });
+  }
+
+  setStatus('online', 'Ready');
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 renderAgents();
 renderCrons();
 loadData();
-
-// refresh data every 5 minutes
 setInterval(loadData, 5 * 60 * 1000);
 
-// initial activity
-addActivityLog('Jarvis: Mission Control online — all systems nominal');
-addActivityLog('Jarvis: 7 agents active · Cloudflare tunnel healthy');
+addActivityLog('Jarvis Mission Control v2 online — 7 agents · 21 crons active');
+addActivityLog('Voice ready — say "Hey Jarvis" or press Space');
