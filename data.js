@@ -20,9 +20,8 @@ Active ChefBox members:
 - Hayley Williams: $175/wk (paused, sub auto-resumes May 18)
 
 HubSpot pipeline: 78 leads, 75 attempted_to_contact, 2 connected, 1 open deal.
-28 cron jobs running across 8 agents: Jarvis (CEO), Cipher (Sales), Forge (Marketing), Scout (SEO), Nova (CX), Atlas (Referral), Titan (Ops), Vera (Chef/R&D).
+21 cron jobs running across 7 agents: Jarvis (CEO), Cipher (Sales), Forge (Marketing), Scout (SEO), Nova (CX), Atlas (Referral), Titan (Ops).
 Brands: mychefbox.com | dinewithaura.com | sprigandfork.com | personalchefnashville.com
-ChefBox divisions: ChefBox Reserve (private chef subscription) | ChefBox Aviation (private jet catering).
 Apollo credits exhausted until ~May 10 — using Tavily free lead engine.
 Rule: Never contact active members about upsells without Joshua approval.
 
@@ -108,11 +107,6 @@ export const AGENTS = [
     desc:'Monitors Sprig bookings (booking_conflicts table) and Aura events table every 2 hours. Auto-creates HubSpot deals on confirmed deposits. Triggers review flow post-event.',
     crons:3, status:'active',
   },
-  {
-    id:'VERA', name:'Vera', role:'Chef/R&D — Menus & Food Science', color:'#c8553d', icon:'👩‍🍳',
-    desc:'Generates ChefBox consumer weekly menus (refrigerated, 5-7 day) and ChefBox Aviation menus (private jet, altitude-adjusted). Runs reheat quality predictions, COGS validation, food science research, and competitive aviation intel. $150/mo budget cap.',
-    crons:7, status:'active',
-  },
 ];
 
 // ── Daily schedule (flat, sorted by CT time) ───────────────────────────────
@@ -133,20 +127,12 @@ export const DAILY = [
   { time:'2:30 PM CT',  agent:'ATLAS',  name:'Referral Engine',       desc:'Source + pitch referral partners, log to HubSpot' },
   { time:'10:00 PM CT', agent:'TITAN',  name:'Ops Daily',             desc:'Health check — integrations, fulfillment, gaps' },
   { time:'Daily',       agent:'FORGE',  name:'LinkedIn Post',         desc:'Joshua\'s LinkedIn — rotates brands, Typeform CTA' },
-  { time:'6:00 AM CT',  agent:'VERA',   name:'Research Scan',         desc:'PubMed OA + USDA FoodData Central → refrigeration/shelf-life literature' },
-  { time:'9:00 AM CT',  agent:'VERA',   name:'Cost Analysis',         desc:'USDA pricing update + Sysco override recalc → active menu COGS' },
-  { time:'2:00 PM CT',  agent:'VERA',   name:'Reheat Validation',     desc:'Run reheat quality predictions on queued menu items (day 3 + day 5)' },
-  { time:'5:00 PM CT',  agent:'VERA',   name:'Daily Briefing',        desc:'Vera daily summary: menus, research, flags, budget → Joshua Telegram' },
 ];
 
 export const WEEKLY = [
   { day:'Mon/Wed/Fri', agent:'FORGE',  name:'SEO Blog Content',    desc:'Keyword post → Supabase → live on all 3 sites (10 AM CT)' },
   { day:'Mon/Wed/Fri', agent:'CIPHER', name:'LinkedIn Prospects',  desc:'Fresh prospect list → Telegram for Joshua (9 AM CT)' },
   { day:'Monday',      agent:'SCOUT',  name:'SEO Analytics',       desc:'GA4 + Search Console report + priority actions → Joshua email (8 AM CT)' },
-  { day:'Monday',      agent:'VERA',   name:'Consumer Menu Gen',   desc:'Full pipeline: generate → reheat predict → COGS → notify Joshua (8 AM CT)' },
-  { day:'Tue/Thu',     agent:'VERA',   name:'Aviation Intel',      desc:'Scrape approved public aviation caterer pages → ingest to knowledge base (10 AM CT)' },
-  { day:'Wednesday',   agent:'VERA',   name:'Aviation Menu',       desc:'ChefBox Aviation menu proposals: altitude-adjusted, galley-constrained (bi-weekly, 11 AM CT)' },
-  { day:'Friday',      agent:'VERA',   name:'Weekly Report',       desc:'Menus, research, COGS trend, budget vs. cap → Joshua + Jarvis (3 PM CT)' },
 ];
 
 // ── Activity log ──────────────────────────────────────────────────────────
@@ -161,5 +147,4 @@ export function addActivityLog(msg) {
 export const ACOLORS = {
   JARVIS:'#00e5b0', CIPHER:'#7b6fff', FORGE:'#f5a623',
   SCOUT:'#3ddbc0',  NOVA:'#f5607a',   ATLAS:'#9b7fff', TITAN:'#4da6ff',
-  VERA:'#c8553d',
 };
