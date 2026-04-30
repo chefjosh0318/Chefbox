@@ -1,0 +1,5 @@
+# pgvector namespace: chefbox_constraints
+# Scope: Operational constraints — approved ingredients, Sysco pricing history,
+#        packaging specs, member dietary profiles (anonymized), COGS benchmarks
+# Source: internal operational data — manually curated
+# Populated by: knowledge_ingestor.py ← manual ingest by Vera team

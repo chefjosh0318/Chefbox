@@ -1,0 +1,109 @@
+version: "1.0"
+policy: "Open access, public domain, and CC-licensed sources only. No paywalled content."
+
+# ── Food science journals (open access only) ──────────────────────
+journals:
+  - name: "Foods (MDPI)"
+    url: "https://www.mdpi.com/journal/foods"
+    api: null
+    license: "CC BY 4.0"
+    use: "Broad food science; excellent OA coverage of refrigerated storage"
+    search_endpoint: "https://api.semanticscholar.org/graph/v1/paper/search"
+
+  - name: "Frontiers in Nutrition"
+    url: "https://www.frontiersin.org/journals/nutrition"
+    api: null
+    license: "CC BY 4.0"
+    use: "Nutritional degradation in cold storage, meal prep science"
+
+  - name: "LWT — Food Science and Technology (OA articles only)"
+    url: "https://www.sciencedirect.com/journal/lwt"
+    api: null
+    license: "Open access articles only — filter required"
+    use: "Refrigerated RTE food science, texture/flavor degradation"
+    filter: open_access_only
+
+  - name: "Journal of Food Science (OA articles only)"
+    url: "https://ift.onlinelibrary.wiley.com/journal/17503841"
+    api: null
+    license: "Open access articles only — filter required"
+    use: "Protein behavior, emulsion stability, reheating studies"
+    filter: open_access_only
+
+  - name: "Journal of Food Protection"
+    url: "https://www.sciencedirect.com/journal/journal-of-food-protection"
+    api: null
+    license: "Open access articles only"
+    use: "Microbial safety, HACCP, cold chain protocols"
+    filter: open_access_only
+
+# ── PubMed Central (open access filter mandatory) ─────────────────
+pubmed:
+  base_url: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+  database: pmc
+  required_filter: "pmc open access[filter]"
+  api_key_env: PUBMED_API_KEY  # optional; increases rate limit
+  rate_limit_per_second: 3
+  queries:
+    - "refrigerated ready-to-eat food shelf life"
+    - "meal prep cold chain 4 celsius quality"
+    - "sous vide refrigerated storage shelf life"
+    - "protein oxidation refrigerated storage"
+    - "starch retrogradation cold storage"
+    - "microbial safety ready-to-eat refrigerated"
+    - "Maillard reaction reheating quality"
+    - "emulsion stability refrigerated dressings"
+    - "vegetable texture degradation cold storage"
+    - "food packaging modified atmosphere refrigerated"
+
+# ── US Government databases (public domain) ───────────────────────
+government:
+  - name: "USDA FoodData Central"
+    url: "https://fdc.nal.usda.gov"
+    api: "https://api.nal.usda.gov/fdc/v1"
+    api_key_env: USDA_API_KEY  # free, register at api.nal.usda.gov
+    license: "Public domain (US Government)"
+    use: "Nutritional composition, ingredient data, reference values"
+
+  - name: "USDA Agricultural Research Service"
+    url: "https://www.ars.usda.gov"
+    api: null
+    license: "Public domain (US Government)"
+    use: "Preservation techniques, postharvest research, food safety"
+
+  - name: "FDA Food Safety (CFSAN)"
+    url: "https://www.fda.gov/food/food-safety-modernization-act-fsma"
+    api: null
+    license: "Public domain (US Government)"
+    use: "HACCP guidelines, temperature requirements, regulatory shelf life"
+
+  - name: "FDA GRAS Notice Inventory"
+    url: "https://www.fda.gov/food/food-additives-petitions/gras-notices"
+    api: null
+    license: "Public domain (US Government)"
+    use: "Ingredient safety status, permitted preservatives"
+
+  - name: "USDA MyPlate / Dietary Guidelines"
+    url: "https://www.myplate.gov"
+    api: null
+    license: "Public domain (US Government)"
+    use: "Portion reference, nutritional targets"
+
+  - name: "CDC Food Safety"
+    url: "https://www.cdc.gov/foodsafety/"
+    api: null
+    license: "Public domain (US Government)"
+    use: "Foodborne illness data, temperature danger zone guidance"
+
+# ── Key search queries for cold-chain focus ───────────────────────
+primary_research_topics:
+  - "protein texture degradation refrigerated 5 day"
+  - "starch retrogradation rice pasta refrigerated"
+  - "cream sauce stability refrigerated storage"
+  - "vegetable color retention cold chain"
+  - "reheating food safety internal temperature"
+  - "modified atmosphere packaging ready-to-eat"
+  - "HACCP refrigerated meal prep"
+  - "high altitude food service flavor perception"  # aviation
+  - "airline catering food safety standards"          # aviation
+  - "sous vide cook-chill refrigerated shelf life"

@@ -1,0 +1,5 @@
+# pgvector namespace: food_science
+# Scope: General food science — HACCP, water activity, Aw/shelf life relationship,
+#        microbiology, preservation chemistry, flavor compound stability
+# Source: PubMed Central OA, USDA ARS, FDA CFSAN (public domain only)
+# Populated by: knowledge_ingestor.py ← research_fetcher.py

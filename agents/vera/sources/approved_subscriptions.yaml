@@ -1,0 +1,44 @@
+version: "1.0"
+policy: >
+  Subscription services approved for internal R&D reference only.
+  No reproduction of copyrighted content. No ingestion of specific recipes into knowledge base.
+  Use for: technique principles, food science explanations, temperature/time data.
+
+subscriptions:
+
+  - service: "ChefSteps Plus"
+    url: "https://www.chefsteps.com"
+    monthly_cost_usd: 9.00
+    billed_to: vera_card_001
+    license: "Commercial subscription — personal/internal research use"
+    primary_value: "Sous vide time/temperature tables; modernist technique reference"
+    approved_uses:
+      - "Reference internal temperature targets for proteins"
+      - "Sous vide time/temp calibration data for cook-chill protocol"
+      - "Technique principles (why emulsification works, starch gelatinization)"
+      - "Internal R&D knowledge (not published externally)"
+    prohibited_uses:
+      - "Reproducing ChefSteps recipes verbatim in ChefBox menus"
+      - "Ingesting full recipe text into pgvector knowledge base"
+      - "Including ChefSteps-sourced text in any customer-facing output"
+      - "Redistributing or sharing subscription content"
+
+  - service: "Cook's Illustrated / America's Test Kitchen"
+    url: "https://www.americastestkitchen.com/cooksillustrated"
+    monthly_cost_usd: 6.00
+    billed_to: vera_card_001
+    license: "Commercial subscription — personal/internal research use"
+    primary_value: "Food science methodology; why-it-works explanations"
+    approved_uses:
+      - "Food science principles and mechanisms (e.g., why brining works)"
+      - "Technique testing methodology as research background"
+      - "Understanding failure modes (why emulsions break, why starches clump)"
+      - "Internal R&D knowledge (not published externally)"
+    prohibited_uses:
+      - "Reproducing ATK/CI recipes or techniques verbatim"
+      - "Ingesting recipe text, measurements, or procedures into knowledge base"
+      - "Using specific ATK ratios without independent reformulation and testing"
+      - "Crediting ATK in any ChefBox output (implies derived content)"
+
+total_monthly_usd: 15.00
+note: "Fixed costs — not subject to budget ratchet cuts. Always maintain subscriptions."

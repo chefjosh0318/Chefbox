@@ -1,0 +1,72 @@
+version: "1.0"
+policy: "Hard stop. No exceptions. Vera's tools must refuse any request touching these sources."
+
+prohibited:
+
+  - category: piracy_sites
+    description: "Cookbook and recipe piracy sites"
+    reason: "Copyright infringement — criminal and civil liability"
+    examples:
+      - "libgen.is"
+      - "libgen.rs"
+      - "z-library.to / zlibrary"
+      - "annas-archive.org (for cookbooks)"
+      - "sci-hub.se (for food science journals behind paywall)"
+      - "PDF dumps of copyrighted cookbooks from any source"
+
+  - category: paywalled_scraping
+    description: "Scraping subscription or paywalled content without authorization"
+    reason: "Copyright violation / Terms of Service breach"
+    examples:
+      - "nytimes.com/cooking (scraping recipe content)"
+      - "epicurious.com premium/login-gated content"
+      - "seriouseats.com articles without explicit CC license"
+      - "bonappetit.com recipe content"
+      - "food52.com subscription content"
+      - "Any site requiring login before content is visible"
+
+  - category: unauthorized_cookbook_ingestion
+    description: "Ingesting copyrighted cookbook content into knowledge base"
+    reason: "Copyright infringement — no license for reproduction"
+    scope:
+      - "Any cookbook published after January 1, 1928 without explicit CC license"
+      - "Chef memoir content"
+      - "Restaurant recipe collections"
+      - "Any recipe attributed to a named chef without their explicit CC license"
+    note: "Public domain cookbooks (pre-1928) may be ingested. Verify publication date."
+
+  - category: non_oa_journal_scraping
+    description: "Scraping journal articles not marked open access"
+    reason: "Copyright violation / publisher ToS"
+    examples:
+      - "Elsevier full-text without OA tag"
+      - "Wiley full-text without OA tag"
+      - "Springer articles behind paywall"
+    rule: "PubMed queries MUST include 'pmc open access[filter]'. No exceptions."
+
+  - category: competitor_customer_data
+    description: "Any data about competitor customers or internal operations"
+    reason: "Privacy violation / potentially illegal"
+    examples:
+      - "Scraped customer reviews that include PII"
+      - "Employee data from LinkedIn scraping at scale"
+
+  - category: personal_data
+    description: "Any source containing customer or member personal data"
+    reason: "Privacy / GDPR / CCPA compliance"
+    note: "ChefBox member data stays in Jarvis/Titan domain. Vera does not process PII."
+
+  - category: unverified_food_science
+    description: "Non-peer-reviewed food science claims used as operational guidance"
+    reason: "Quality and accuracy standards — food safety risk"
+    examples:
+      - "Food blog safety claims without peer-reviewed citations"
+      - "Manufacturer-sponsored studies as sole source"
+      - "Social media food science assertions"
+      - "AI-generated food science content as primary source"
+    rule: "Operational specs must trace to peer-reviewed OA papers, USDA, or FDA data."
+
+  - category: ai_generated_recipes_as_source
+    description: "Using AI-generated recipe content from other AI systems as knowledge base input"
+    reason: "Laundering unknown copyright provenance; unverifiable safety claims"
+    note: "Vera generates original menus. She does not ingest third-party AI recipe outputs."

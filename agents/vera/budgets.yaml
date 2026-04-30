@@ -1,0 +1,97 @@
+agent: vera
+version: "1.0"
+period: monthly
+card: vera_card_001  # CardForAgent virtual card
+
+hard_cap_usd: 150.00
+spend_file: budgets_current.json  # tracked at agent root, reset monthly
+
+# ── Spend categories ───────────────────────────────────────────────
+categories:
+  anthropic_api:
+    budget_usd: 60.00
+    note: "haiku for parsing/scoring; sonnet for menu gen; opus only when justified"
+    model_routing:
+      default: claude-haiku-4-5
+      menu_generation: claude-sonnet-4-6
+      food_science_analysis: claude-opus-4-7
+    max_tokens_per_call:
+      haiku: 2048
+      sonnet: 4096
+      opus: 8192
+
+  fal_ai:
+    budget_usd: 20.00
+    cost_per_image_usd: 0.04
+    note: "plating diagram renders only; skip if budget ratchet ≥80%"
+
+  elevenlabs:
+    budget_usd: 10.00
+    note: "voice synthesis for Vera briefings; skip if ratchet ≥80%"
+
+  voyage_ai:
+    budget_usd: 5.00
+    note: "embeddings for pgvector knowledge base"
+
+  subscriptions:
+    chefsteps_plus:
+      budget_usd: 9.00
+      billing: monthly
+      fixed: true  # always pay; not subject to ratchet cuts
+    cooks_illustrated:
+      budget_usd: 6.00
+      billing: monthly
+      fixed: true
+    usda_api:
+      budget_usd: 0.00
+      note: free tier
+    pubmed_api:
+      budget_usd: 0.00
+      note: free tier
+
+  infrastructure:
+    scraping:
+      budget_usd: 10.00
+      note: "proxy rotation if needed; pause at ratchet ≥80%"
+    storage:
+      budget_usd: 15.00
+      note: "pgvector on Hetzner VPS; fixed cost"
+    compute:
+      budget_usd: 15.00
+      note: "cron job execution on existing VPS; marginal"
+
+# ── Ratchet model ──────────────────────────────────────────────────
+ratchet:
+  - threshold_pct: 50
+    threshold_usd: 75.00
+    action: downgrade_models
+    description: >
+      Force all Anthropic calls to claude-haiku-4-5.
+      Suspend claude-sonnet-4-6 and claude-opus-4-7.
+      Alert Joshua via Telegram.
+
+  - threshold_pct: 80
+    threshold_usd: 120.00
+    action: pause_non_critical
+    description: >
+      Pause: aviation_scraper, plating_renderer, elevenlabs voice.
+      Keep running: menu generation, research scans, cost calculations, reheat predictions.
+      Alert Joshua via Telegram.
+
+  - threshold_pct: 95
+    threshold_usd: 142.50
+    action: emergency_stop
+    description: >
+      Halt ALL autonomous operations immediately.
+      Send CRITICAL alert to Joshua via Telegram.
+      Do not resume until Joshua manually resets in budgets_current.json.
+
+# ── Alert thresholds ───────────────────────────────────────────────
+alerts:
+  telegram_chat_id: "8718538131"
+  notify_at_pct: [50, 75, 90, 95, 100]
+
+# ── Monthly subscription floor ─────────────────────────────────────
+# Fixed costs that always run regardless of ratchet:
+fixed_monthly_floor_usd: 15.00  # ChefSteps + Cook's Illustrated
+# Remaining variable budget: $135.00

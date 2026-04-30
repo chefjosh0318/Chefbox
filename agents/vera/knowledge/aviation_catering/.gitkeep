@@ -1,0 +1,5 @@
+# pgvector namespace: aviation_catering
+# Scope: Public aviation caterer menu intelligence, NBAA standards,
+#        high-altitude flavor science, galley equipment constraints
+# Source: approved_scraping.yaml sites (public-facing pages only)
+# Populated by: knowledge_ingestor.py ← aviation_scraper.py

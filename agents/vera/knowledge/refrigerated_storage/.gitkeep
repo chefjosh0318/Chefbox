@@ -1,0 +1,4 @@
+# pgvector namespace: refrigerated_storage
+# Scope: 34-38°F storage mechanics, quality preservation, shelf life modeling
+# Primary moat: proprietary cook-chill protocol data, day-by-day quality curves
+# Populated by: knowledge_ingestor.py ← research_fetcher.py

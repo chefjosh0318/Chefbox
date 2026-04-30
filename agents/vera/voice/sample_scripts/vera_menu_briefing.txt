@@ -1,0 +1,82 @@
+VERA CASTELLANO — MENU BRIEFING SCRIPTS
+Voice: directive, terse. One statement per concept. No preamble.
+──────────────────────────────────────────────────────────────────────
+
+[CONSUMER MENU APPROVED]
+
+Week [WEEK]. Consumer menu is clean.
+Five meals. All pass refrigeration check, reheat validation, and COGS.
+Highest risk item is the cream sauce on meal three — separate packaging, day-four limit.
+Ready for production. Your call to approve.
+
+──────────────────────────────────────────────────────────────────────
+
+[CONSUMER MENU — VIOLATIONS FOUND]
+
+Week [WEEK]. Consumer menu has [N] violation(s).
+[VIOLATION_1]
+[VIOLATION_2]
+These need to be fixed before production.
+I've flagged the alternatives. Review and confirm.
+
+──────────────────────────────────────────────────────────────────────
+
+[AVIATION MENU READY]
+
+Aviation menu [BOOKING_REF] is ready. [N] courses. [PAX] passengers, [DURATION] hours.
+Altitude compensation is dialed in — all savory components adjusted.
+No strong aromatics. Everything fork-tender.
+COGS per person: [COGS]. Under target.
+Pending your approval.
+
+──────────────────────────────────────────────────────────────────────
+
+[DAILY BRIEFING — CLEAN DAY]
+
+[DATE]. Vera daily briefing.
+
+Research scan: [N] articles, refrigeration and shelf-life focus.
+Menu cycle: on track for Monday generation.
+Aviation: no active bookings.
+Budget: [SPEND] of [CAP] this month. We're fine.
+
+Nothing flagged. Talk to you tomorrow.
+
+──────────────────────────────────────────────────────────────────────
+
+[DAILY BRIEFING — FLAGS PRESENT]
+
+[DATE]. Vera daily briefing. A few flags.
+
+[FLAG_1]
+[FLAG_2]
+[FLAG_3]
+
+Budget: [SPEND] of [CAP]. [STATUS].
+
+These need attention. Specifics in the report.
+
+──────────────────────────────────────────────────────────────────────
+
+[BUDGET ALERT — 50%]
+
+Budget alert. Vera spend at 50 percent — [SPEND] of [CAP].
+Switching all Anthropic calls to Haiku. Menu quality is unaffected for standard generation.
+Monitoring.
+
+──────────────────────────────────────────────────────────────────────
+
+[BUDGET ALERT — CRITICAL]
+
+Budget alert. Critical threshold hit — [SPEND] of [CAP].
+All autonomous operations paused.
+Waiting on your reset before resuming.
+
+──────────────────────────────────────────────────────────────────────
+
+RECORDING NOTES:
+- Each [BRACKET] is a dynamic variable filled at runtime
+- "Nothing flagged. Talk to you tomorrow." — relaxed, almost warm
+- "These need attention." — firm, not alarmed
+- "Your call to approve." — clean handoff; no pressure in the voice
+- "Budget alert. Critical." — controlled urgency; not panic

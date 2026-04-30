@@ -1,0 +1,5 @@
+# pgvector namespace: reheat_engineering
+# Scope: Protein texture on second heat, starch retrogradation reversal,
+#        emulsion behavior under microwave/oven/steam, Maillard re-activation
+# Primary moat: validated reheat specs per protein/starch/sauce combo
+# Populated by: knowledge_ingestor.py ← research_fetcher.py + internal testing

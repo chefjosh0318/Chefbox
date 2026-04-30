@@ -1,0 +1,144 @@
+agent: vera
+version: "1.0"
+timezone: America/Chicago
+
+# ── Daily routines ─────────────────────────────────────────────────
+daily:
+
+  - time: "06:00"
+    task: research_scan
+    description: "PubMed OA + USDA FoodData Central — new refrigeration/shelf-life publications"
+    tool: research_fetcher
+    model: claude-haiku-4-5
+    priority: low
+    output: outputs/research_summaries/
+    runs: every_day
+
+  - time: "08:00"
+    task: menu_generation_consumer
+    description: "Generate ChefBox weekly consumer menu with full validation pipeline"
+    tool: menu_generator_consumer
+    model: claude-sonnet-4-6
+    priority: high
+    output: outputs/consumer_menus/
+    runs: monday_only
+    pipeline:
+      - menu_generator_consumer
+      - reheat_predictor
+      - cost_calculator
+      - notification_dispatcher  # notify Joshua: menu ready for review
+
+  - time: "09:00"
+    task: cost_analysis
+    description: "Pull USDA pricing updates, recalculate COGS for active menu items"
+    tool: cost_calculator
+    model: claude-haiku-4-5
+    priority: medium
+    runs: every_day
+
+  - time: "10:00"
+    task: aviation_intel
+    description: "Scrape approved public aviation caterer pages for competitive menu intel"
+    tool: aviation_scraper
+    model: claude-haiku-4-5
+    priority: low
+    output: outputs/aviation_menus/
+    runs: tuesday_thursday
+    budget_gate: 80  # skip if spend ≥80% of cap
+
+  - time: "11:00"
+    task: menu_generation_aviation
+    description: "Generate ChefBox Aviation menu proposals with altitude adjustments"
+    tool: menu_generator_aviation
+    model: claude-sonnet-4-6
+    priority: high
+    output: outputs/aviation_menus/
+    runs: bi_weekly  # 1st and 3rd Wednesday of month
+    pipeline:
+      - menu_generator_aviation
+      - reheat_predictor
+      - cost_calculator
+      - notification_dispatcher
+
+  - time: "14:00"
+    task: reheat_validation
+    description: "Run reheat quality predictions on any new menu items queued for review"
+    tool: reheat_predictor
+    model: claude-haiku-4-5
+    priority: high
+    runs: every_day
+
+  - time: "16:30"
+    task: plating_renders
+    description: "Generate FAL.AI plating diagrams for newly approved menu items"
+    tool: plating_renderer
+    priority: low
+    runs: every_day
+    budget_gate: 80  # skip if spend ≥80% of cap
+
+  - time: "17:00"
+    task: daily_briefing
+    description: "Send Vera's daily summary to Joshua: menus, research, flags, budget"
+    tool: notification_dispatcher
+    priority: high
+    runs: every_day
+
+# ── Weekly routines ────────────────────────────────────────────────
+weekly:
+
+  - day: Monday
+    time: "08:00"
+    task: full_menu_planning
+    description: >
+      Full consumer menu cycle: research context → generate menu →
+      reheat validate → cost validate → notify Joshua for approval.
+    priority: critical
+
+  - day: Tuesday
+    time: "10:00"
+    task: aviation_scrape
+    description: "Pull latest public aviation caterer menus; ingest into knowledge base."
+    priority: low
+
+  - day: Wednesday
+    time: "11:00"
+    task: aviation_menu_review
+    description: "Refresh ChefBox Aviation proposals. Bi-weekly cadence; skip off-weeks."
+    priority: high
+
+  - day: Thursday
+    time: "10:00"
+    task: aviation_scrape_2
+    description: "Second weekly aviation intel pass."
+    priority: low
+
+  - day: Friday
+    time: "15:00"
+    task: weekly_report
+    description: >
+      Compile: menus generated, research articles ingested, COGS trend,
+      aviation intel deltas, budget spend vs. cap. Send to Joshua + Jarvis.
+    tool: notification_dispatcher
+    model: claude-sonnet-4-6
+    priority: medium
+    output: outputs/weekly_reports/
+
+# ── On-demand triggers ─────────────────────────────────────────────
+on_demand:
+
+  - trigger: nova_feedback
+    description: "CX complaint volume spike → Vera reviews affected menu item"
+    action: reheat_predictor + cost_calculator on flagged item
+
+  - trigger: ingredient_unavailable
+    description: "Sysco reports ingredient OOS → Vera generates substitution with COGS impact"
+    action: menu_generator_consumer (substitution mode)
+
+  - trigger: aviation_booking_confirmed
+    description: "Titan confirms new aviation booking → Vera generates custom menu proposal"
+    action: menu_generator_aviation (custom mode)
+    sla_hours: 4
+
+  - trigger: budget_threshold_breach
+    description: "Any ratchet threshold hit → immediate notification + model downgrade"
+    action: notification_dispatcher (CRITICAL priority)

@@ -1,0 +1,10 @@
+{
+  "month": "2026-04",
+  "fal_ai": 0.00,
+  "anthropic": 0.00,
+  "elevenlabs": 0.00,
+  "voyage_ai": 0.00,
+  "other": 0.00,
+  "total": 0.00,
+  "_note": "Reset on 1st of each month. Managed by plating_renderer.py and budget_tracker. Emergency stop at $142.50."
+}

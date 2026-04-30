@@ -1,0 +1,86 @@
+version: "1.0"
+policy: >
+  Public-facing pages only. No login-gated content. Respect robots.txt.
+  User-Agent: ChefBoxResearchBot/1.0 (aviation menu research; contact@summit-brands.com).
+  Minimum 3s delay between requests per domain.
+  Maximum 50 content items extracted per page.
+  Purpose: competitive menu intelligence only, stored internally.
+
+# ── Approved aviation caterer public pages ────────────────────────
+approved_sites:
+
+  - name: "DO & CO Aviation"
+    url: "https://www.doco.com/en/aviation"
+    pages:
+      - "https://www.doco.com/en/aviation"
+      - "https://www.doco.com/en/aviation/services"
+    selectors: ["h2", "h3", "p", "li", ".description", ".service-text"]
+    category: aviation_catering
+    notes: "Global premium airline caterer. Public service descriptions."
+
+  - name: "Flying Food Group"
+    url: "https://www.flyingfoodgroup.com"
+    pages:
+      - "https://www.flyingfoodgroup.com/menu-solutions"
+      - "https://www.flyingfoodgroup.com/culinary"
+    selectors: ["h2", "h3", "p", "li"]
+    category: aviation_catering
+    notes: "Airline catering. Menu solution capability descriptions."
+
+  - name: "gategroup / Gate Gourmet"
+    url: "https://www.gategroup.com/brands/gate-gourmet/"
+    pages:
+      - "https://www.gategroup.com/brands/gate-gourmet/"
+    selectors: ["h2", "h3", "p", "li", ".content-block p"]
+    category: aviation_catering
+    notes: "Largest airline caterer. Public culinary capabilities page."
+
+  - name: "LSG Sky Chefs (Lufthansa LSG)"
+    url: "https://www.lsgskychefs.com"
+    pages:
+      - "https://www.lsgskychefs.com/en/what-we-do/culinary-services/"
+    selectors: ["h2", "h3", "p", ".content"]
+    category: aviation_catering
+    notes: "Premium airline catering. Culinary services public page."
+
+  - name: "SATS Ltd (Asia-Pacific)"
+    url: "https://www.sats.com.sg"
+    pages:
+      - "https://www.sats.com.sg/what-we-do/food-solutions"
+    selectors: ["h2", "h3", "p", "li"]
+    category: aviation_catering
+    notes: "Asia-Pacific aviation catering leader. Food solutions page."
+
+  - name: "NBAA Business Aviation Catering"
+    url: "https://nbaa.org"
+    pages:
+      - "https://nbaa.org/aircraft-operations/cabin-management/catering/"
+    selectors: ["p", "h2", "h3", "li", ".entry-content p"]
+    category: industry_standards
+    notes: "NBAA public standards for business aviation catering."
+
+  - name: "Air Culinaire Worldwide"
+    url: "https://www.airculinaire.com"
+    pages:
+      - "https://www.airculinaire.com/menus"
+      - "https://www.airculinaire.com/services"
+    selectors: ["h2", "h3", "p", "li", ".menu-description"]
+    category: aviation_catering
+    notes: "Private aviation catering. Public menu style descriptions."
+
+  - name: "Jet Aviation Catering"
+    url: "https://www.jetaviation.com"
+    pages:
+      - "https://www.jetaviation.com/services/ground-services/catering"
+    selectors: ["h2", "h3", "p", "li"]
+    category: aviation_catering
+    notes: "Business aviation services. Catering capabilities page."
+
+# ── Rate limiting defaults ────────────────────────────────────────
+defaults:
+  request_delay_seconds: 3.0
+  timeout_seconds: 20
+  max_items_per_page: 50
+  max_pages_per_domain: 5
+  retry_on_429: true
+  retry_delay_seconds: 60
